@@ -1,0 +1,66 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+.tab-pane {
+  padding-top: 0.5em;
+}
+.line-margin-after {
+  margin-bottom: 1em;
+}
+
+#divWrapAll {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+}
+#tblWrapAll {
+  height: 100%;
+  width: 100%;
+}
+#tdWrapAllTabs {
+  height: 1px;
+}
+#tdWrapAllTabPanes {
+  height: 99%;
+}
+#divWrapAllTabPanes {
+  height: 100%;
+  overflow: auto;
+}
+#divTextWrap, #divTextStyleWrap {
+  box-shadow: 0 0 1px #000;
+  border-radius: 5px;
+  overflow: hidden;
+  height: 400px;
+}
+#divText, #divTextStyle {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+#displayList .list-item {
+  padding: 5px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #000;
+  margin: 5px;
+}
+
+#displayList .list-item-wrap {
+  width: 100%;
+}
+#displayList .image-wrap {
+  width: 1px;
+}
+#displayList .image-wrap img {
+  box-shadow: 0 0 2px #000;
+  margin-right: 5px;
+  width: 300px;
+}
+#displayList .content-wrap {
+  vertical-align: top;
+  width: 99%;
+}

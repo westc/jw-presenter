@@ -1,0 +1,23 @@
+{
+  "name": "jw-presenter",
+  "productName": "JW Presenter",
+  "version": "1.0.0",
+  "description": "Seamlessly present media designed for Jehovah's Witnesses.",
+  "main": "app.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-packager .",
+    "build-mac": "electron-packager . --platform=darwin --arch=x64 --prune=true --out=builds --overwrite --ignore=\"/builds|\\.gitignore\" --icon=\"assets/icons/JWPresenter.icns\"",
+    "build-win": "electron-packager . --platform=win32 --arch=x64 --prune=true --out=builds --overwrite --ignore=\"/builds|\\.gitignore\" --icon=\"assets/icons/JWPresenter.ico\""
+  },
+  "repository": "https://github.com/westc/jw-presenter",
+  "author": "Christopher West (http://cwestify.com/)",
+  "license": "ISC",
+  "devDependencies": {
+    "ace-builds": "^1.2.6",
+    "electron": "^1.6.6",
+    "electron-packager": "^8.7.0",
+    "musicmetadata": "^2.0.5",
+    "requirejs": "^2.3.3"
+  }
+}

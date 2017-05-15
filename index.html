@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>JW Presenter</title>
+
+    <!-- Bootstrap -->
+    <link href="bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="bootstrap-3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- YourJS (JS) and jQuery (used by Bootstrap and just in general) -->
+    <script type="text/JavaScript">
+    // Load YourJS (JS)
+    var JS = require('./YourJS/JS.js');
+
+    // Load jQuery (jQuery)
+    var jQuery = require('./jquery-2.2.1.min.js'), $ = jQuery;
+
+    // Load ACE (ace)
+    ['ace', 'mode-javascript', 'mode-markdown', 'mode-css'].forEach((v) => require(`ace-builds/src-min-noconflict/${v}`));
+
+    // Load the index script
+    require('./index');
+    </script>
+
+    <link href="index.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="divWrapAll">
+      <table id="tblWrapAll" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr>
+            <td id="tdWrapAllTabs">
+              <!-- Nav tabs -->
+              <ul class="nav nav-tabs" role="tablist">
+                <li role="presentation" class="active"><a href="#musicPanel" aria-controls="musicPanel" role="tab" data-toggle="tab">Music</a></li>
+                <li role="presentation"><a href="#displayPanel" aria-controls="displayPanel" role="tab" data-toggle="tab">Display</a></li>
+                <li role="presentation"><a href="#settingsPanel" aria-controls="settingsPanel" role="tab" data-toggle="tab">Settings</a></li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td id="tdWrapAllTabPanes">
+              <div id="divWrapAllTabPanes">
+                <!-- Tab panes -->
+                <div class="tab-content">
+                  <div role="tabpanel" class="tab-pane active" id="musicPanel">
+                    <div>
+                      <button id="btnBGMusic" type="button" class="btn btn-default" data-toggle="button" aria-pressed="false" autocomplete="off">Background Music</button>
+                    </div>
+                  </div>
+                  <div role="tabpanel" class="tab-pane" id="displayPanel">
+                    <div class="input-group line-margin-after">
+                      <span class="input-group-btn">
+                        <button id="btnSetDisplayDir" type="button" class="btn btn-default">Set Directory</button>
+                      </span>
+                      <input id="txtDisplayDir" type="text" class="form-control" readonly />
+                      <span class="input-group-btn">
+                        <button id="btnRefreshDisplayDir" type="button" class="btn btn-default">
+                          <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        </button>
+                      </span>
+                    </div>
+                    <div id="displayList"></div>
+                  </div>
+                  <div role="tabpanel" class="tab-pane" id="settingsPanel">
+
+                    <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                      <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="collapseHeaderDirs">
+                          <h4 class="panel-title">
+                            <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseDirs" aria-expanded="false" aria-controls="collapseDirs">
+                              Directories
+                            </a>
+                          </h4>
+                        </div>
+                        <div id="collapseDirs" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseHeaderDirs">
+                          <div class="panel-body">
+                            <div class="input-group line-margin-after">
+                              <span class="input-group-btn">
+                                <button id="btnSetSongsDir" type="button" class="btn btn-default">Main Songs</button>
+                              </span>
+                              <input id="txtSongsDir" type="text" class="form-control" readonly />
+                            </div>
+
+                            <div class="input-group">
+                              <span class="input-group-btn">
+                                <button id="btnSetBGDir" type="button" class="btn btn-default">Background Images</button>
+                              </span>
+                              <input id="txtBGDir" type="text" class="form-control" readonly />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="headingTwo">
+                          <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">Texts</a>
+                          </h4>
+                        </div>
+                        <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+                          <div class="panel-body">
+                            <div class="input-group line-margin-after">
+                              <label class="input-group-addon" id="lblTextName" for="txtTextName">Name:</label>
+                              <input type="text" class="form-control" id="txtTextName" aria-describedby="lblTextName">
+                              <div class="input-group-btn">
+                                <button id="btnDeleteText" type="button" class="btn btn-danger">
+                                  <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                                </button>
+                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                  <span class="caret"></span>
+                                </button>
+                                <ul id="textsList" class="dropdown-menu dropdown-menu-right">
+                                  <li role="separator" class="divider"></li>
+                                  <li><a href="#"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add A New Text</a></li>
+                                </ul>
+                              </div><!-- /input-group-button -->
+                            </div>
+
+                            <label id="lblText">Text (<a href="https://guides.github.com/features/mastering-markdown/#examples" target="_blank">markdown styling</a> enabled):</label>
+                            <div id="divTextWrap" class="line-margin-after"><div id="divText"></div></div>
+
+                            <label id="lblTextStyle">CSS Style (<code>body</code>, <code>#contents</code>, and <code>#contentsWrap</code>):</label>
+                            <div id="divTextStyleWrap"><div id="divTextStyle"></div></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="bootstrap-3.3.7/js/bootstrap.min.js"></script>
+  </body>
+</html>

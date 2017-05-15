@@ -1,0 +1,84 @@
+html, body {
+  font-family: Tahoma;
+  overflow: hidden;
+}
+a {
+  color: #00F;
+  text-decoration: none;
+}
+a:hover {
+  color: #F00;
+}
+code {
+  border: 1px solid #CCC;
+  background: #F5F2F0;
+  padding: 1px 3px;
+  border-radius: 3px;
+  margin: 1px;
+  position: relative;
+  top: -0.1em;
+  word-break: break-word!important;
+  white-space: pre-wrap!important;
+}
+pre > code {
+  border: initial;
+  background: initial;
+  padding: initial;
+  border-radius: initial;
+  margin: initial;
+  position: initial;
+  top: initial;
+}
+pre[class*="language-"] > code[class*="language-"] {
+  white-space: pre!important;
+}
+#leftMenuWrapper {
+  width: 200px;
+  box-sizing: border-box;
+  padding: 10px;
+  background: #EEE;
+  box-shadow: 0 0 5px; 1px;
+  position: absolute;
+  overflow: auto;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 2;
+}
+#leftMenuWrapper .heading {
+  font-size: 125%;
+  font-weight: bold;
+  box-shadow: inset 0 0 0.75em 1px #000, 0 1px 2px 1px #000;
+  border-radius: 0.375em;
+  padding: 2px;
+  margin: 2px 0;
+  text-align: center;
+  background: #07F;
+  color: #FFF;
+  text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 3px #000;
+}
+.menuItemWrapper {
+  margin-bottom: 1em;
+}
+.menuItemWrapper a {
+  display: block;
+  font-size: 90%;
+  margin-top: 5px;
+  font-family: Trebuchet MS;
+}
+.menuItemWrapper a:hover {
+  display: block;
+}
+#contentWrapper {
+  position: absolute;
+  top: 0;
+  left: 200px;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+  z-index: 1;
+  padding: 10px;
+}
+.negativeMarginV {
+  margin-bottom: -20px;
+}
