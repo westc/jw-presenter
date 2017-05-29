@@ -1,25 +1,27 @@
 var path = require('path');
-const {app, BrowserWindow, Menu} = require('electron');
+const {app, BrowserWindow, Menu, ipcMain} = require('electron');
 
 app.on('ready', function() {
-  var mainWindow = new BrowserWindow({
+  // Load the presenter first so that any settings will propagate into it afterwards (eg. presenter-css)
+  var winPresenter = new BrowserWindow({
+    // https://codepen.io/cwestify/pen/rmdZBN
+    icon: path.join(__dirname, 'assets/icons/256×256.png'),
+    frame: true,
+    transparent: false,
+    shadow: true
+  });
+  winPresenter.name = 'presenter';
+  winPresenter.loadURL(`file://${__dirname}/presenter.html`);
+
+  var winMain = new BrowserWindow({
     // https://codepen.io/cwestify/pen/rmdZBN
     icon: path.join(__dirname, 'assets/icons/256×256.png')
   });
-  mainWindow.maximize();
-  mainWindow.loadURL(`file://${__dirname}/index.html`);
-  mainWindow.on('close', function() {
+  winMain.name = 'main';
+  winMain.loadURL(`file://${__dirname}/index.html`);
+  winMain.on('close', function() {
     app.quit();
   });
-
-  // var presenterWindow = new BrowserWindow({
-  //   // https://codepen.io/cwestify/pen/rmdZBN
-  //   icon: path.join(__dirname, 'assets/icons/256×256.png'),
-  //   frame: true,
-  //   transparent: false,
-  //   shadow: true
-  // });
-  // presenterWindow.loadURL(`file://${__dirname}/presenter.html`);
 
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     {
@@ -49,6 +51,12 @@ app.on('ready', function() {
     {
       label: 'View',
       submenu: [
+        {
+          label: 'Reload',
+          accelerator: 'CmdOrCtrl+R',
+          role: 'reload'
+        },
+        { type: 'separator' },
         {
           label: 'Toggle Dev Tools',
           accelerator: 'CmdOrCtrl+Alt+I',
