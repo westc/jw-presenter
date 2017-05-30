@@ -12,6 +12,7 @@ app.on('ready', function() {
   });
   winPresenter.name = 'presenter';
   winPresenter.loadURL(`file://${__dirname}/presenter.html`);
+  winPresenter.on('close', () => app.quit());
 
   var winMain = new BrowserWindow({
     // https://codepen.io/cwestify/pen/rmdZBN
@@ -19,9 +20,7 @@ app.on('ready', function() {
   });
   winMain.name = 'main';
   winMain.loadURL(`file://${__dirname}/index.html`);
-  winMain.on('close', function() {
-    app.quit();
-  });
+  winMain.on('close', () => app.quit());
 
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     {
