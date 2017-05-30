@@ -1,5 +1,5 @@
 var path = require('path');
-const {app, BrowserWindow, Menu, ipcMain} = require('electron');
+const {app, BrowserWindow, Menu, shell} = require('electron');
 
 app.on('ready', function() {
   // Load the presenter first so that any settings will propagate into it afterwards (eg. presenter-css)
@@ -73,6 +73,24 @@ app.on('ready', function() {
             var focusedWindow = BrowserWindow.getFocusedWindow();
             focusedWindow && focusedWindow.setFullScreen(!focusedWindow.isFullScreen());
           }
+        },
+        {
+          label: 'Maximize',
+          accelerator: 'CmdOrCtrl+Alt+M',
+          click() {
+            var win = BrowserWindow.getFocusedWindow();
+            win[`${win.isMaximized()?'un':''}maximize`]();
+          }
+        }
+      ]
+    },
+    {
+      label: 'Help',
+      role: 'help',
+      submenu: [
+        {
+          label: 'Learn More (GitHub)',
+          click: () => shell.openExternal('https://github.com/westc/jw-presenter#readme')
         }
       ]
     }

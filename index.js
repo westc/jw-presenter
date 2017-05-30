@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { dialog, BrowserWindow, ipcMain } = require('electron').remote;
+const { dialog, BrowserWindow, ipcMain, shell } = require('electron').remote;
 const mm = require('musicmetadata');
 const markdown = new (require('showdown').Converter);
 
@@ -10,6 +10,8 @@ const APP_BASE_PATH = path.dirname(require.main.filename);
 const APP_SETTINGS_PATH = path.join(APP_BASE_PATH, 'settings.json');
 
 const THUMB_WIDTH = 300;
+
+const SONG_CODES = [1102009094,1102009115,1102009080,1102009121,1102009129,1102009124,1102009098,1102009083,1102009087,1102009089,1102009122,1102009151,1102009095,1102009096,1102009099,1102009100,1102009101,1102009102,1102009103,1102009097,1102009104,1102009105,1102009106,1102009107,1102009163,1102009109,1102009110,1102009111,1102009113,1102009116,1102009117,1102009118,1102009119,1102009120,1102009123,1102009141,1102009112,1102009125,1102009127,1102009170,1102009156,1102009126,1102009128,1102009130,1102009131,1102009145,1102009144,1102009148,1102009149,1102009150,1102009153,1102009154,1102009162,1102009168,1102009108,1102009142,1102009210,1102009202,1102009160,1102009212,1102009208,1102009200,1102009091,1102009172,1102009140,1102009181,1102009157,1102009171,1102009209,1102009161,1102009137,1102009188,1102009152,1102009178,1102009164,1102009197,1102009093,1102009193,1102009186,1102009189,1102009173,1102009155,1102009134,1102009092,1102009174,1102009166,1102009143,1102009169,1102009138,1102009180,1102009139,1102009136,1102009185,1102009198,1102009204,1102009207,1102009147,1102009082,1102009158,1102009114,1102009086,1102009159,1102009084,1102009194,1102009196,1102009088,1102009165,1102009175,1102009167,1102009135,1102009132,1102009184,1102009183,1102009090,1102009146,1102009133,1102009081,1102009187,1102009211,1102009179,1102009192,1102009191,1102009203,1102009205,1102009085,1102009176,1102009177,1102009199,1102009190,1102009213,1102009201,1102009195,1102009206,1102009214,1102009182,1102014550,1102014551,1102014552,1102014554,1102014555,1102014556,1102014557,1102014558,1102014559,1102014560,1102014561,1102014562,1102014563,1102014564,1102014565,1102014566,1102014567,1102014568,1102014569];
 
 const audio = $('<audio>').on('ended', onMusicEnd).on('error', function() {
   console.error('Error loading music:', { audio: audio, src: audio.src, arguments: arguments });
@@ -91,6 +93,14 @@ function adjustTextPreviewZoom() {
 }
 
 winMain.on('resize', JS.debounce(adjustTextPreviewZoom, 250));
+
+// Cause target="_blank" links to open in the default browser
+winMain.webContents.on('new-window', function(event, url) {
+  if (/^https?:\/\//i.test(url)) {
+    BrowserWindow.getAllWindows().forEach((w) => !w.name && w.close());
+    shell.openExternal(url);
+  }
+});
 
 winPresenter.on('resize', JS(function() {
   adjustTextPreviewZoom();
@@ -256,10 +266,14 @@ function recurseDirSync(currentDirPath, depthLeft, opt_filter) {
   return result;
 }
 
-var isDirectorySync = (pathToCheck) => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isDirectory(),
-    isFileSync = (pathToCheck) => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isFile();
+var isDirectorySync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isDirectory(),
+    isFileSync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isFile();
 
 function loadSettings() {
+  $('#tdWrapAllTabs [data-toggle=tab]').filter((i, elem) => $(elem).text() == appSettings.get('mainTabText')).click();
+
+  JS.walk(appSettings.get('collapsibles', {}), (action, id) => $(`#${id}`).collapse(action));
+
   var songsDir = appSettings.get('songsDir'),
       bgDir = appSettings.get('bgDir'),
       displayDir = appSettings.get('displayDir'),
@@ -292,8 +306,9 @@ function loadSettings() {
   }
   texts.forEach((text, i) => addTextToList(text, i, !i));
 
-  var properties = appSettings.get('properties', []);
-  JS.walk(appSettings.get('properties', []), function(prop, i) {
+  var properties = appSettings.get('properties', []).sort(({ name: name1 }, { name: name2 }) => JS.compare(name1, name2));
+  appSettings.set('properties', properties);
+  JS.walk(properties, function(prop, i) {
     $('#propsList').append(JS.dom({
       _: 'li',
       $: {
@@ -315,8 +330,6 @@ function loadSettings() {
       selectProperty(prop, i);
     }
   });
-
-  $('#tdWrapAllTabs [data-toggle=tab]').filter((i, elem) => $(elem).text() == appSettings.get('mainTabText')).click();
 }
 
 function addTextToList(text, i, selectIt) {
@@ -467,27 +480,29 @@ function setDisplayDir(dirPath) {
 
   $('#collapseImages, #collapseVideos').find('> .panel-body').html('');
 
-  recurseDirSync(dirPath, 3, function(filePath, isFile, stat) {
-    var [ext, extImg, extVid] = filePath.match(/\.(?:(png|jpe?g|gif)|(mp4))$/i) || [];
-    if (isFile && ext) {
-      if (extVid) {
-        var jListItem = $('<div class="list-item">').appendTo('#collapseVideos > .panel-body');
-        mm(fs.createReadStream(filePath), function (err, metadata) {
-          if (err) {
-            jListItem.remove();
-          }
-          else {
-            getVideoImage(filePath, (t) => t / 3, (img) => setDisplayListItem(jListItem, filePath, metadata, img));
-          }
-        });
+  if (dirPath) {
+    recurseDirSync(dirPath, 3, function(filePath, isFile, stat) {
+      var [ext, extImg, extVid] = filePath.match(/\.(?:(png|jpe?g|gif)|(mp4))$/i) || [];
+      if (isFile && ext) {
+        if (extVid) {
+          var jListItem = $('<div class="list-item">').appendTo('#collapseVideos > .panel-body');
+          mm(fs.createReadStream(filePath), function (err, metadata) {
+            if (err) {
+              jListItem.remove();
+            }
+            else {
+              getVideoImage(filePath, (t) => t / 3, (img) => setDisplayListItem(jListItem, filePath, metadata, img));
+            }
+          });
+        }
+        else {
+          var jListItem = $('<div class="list-item">').appendTo('#collapseImages > .panel-body');
+          setDisplayListItem(jListItem, filePath, { title: path.parse(filePath).name });
+        }
       }
-      else {
-        var jListItem = $('<div class="list-item">').appendTo('#collapseImages > .panel-body');
-        setDisplayListItem(jListItem, filePath, { title: path.parse(filePath).name });
-      }
-    }
-    return !isFile && !/^\./.test(path.basename(filePath));
-  });
+      return !isFile && !/^\./.test(path.basename(filePath));
+    });
+  }
 }
 
 var getCleanPath = filePath => /^(ftp|https?):/i.test(filePath) ? filePath : filePath.replace(/[#\?]/g, JS.escape);
@@ -677,10 +692,59 @@ function executePropFunc(id, args) {
 $(function() {
   JS.addTypeOf(jQuery, 'jQuery');
 
-  $('#btnSetSongsDir').click(function() {
+  $('select.combobox').combobox();
+
+  $('.panel:not(.dont-save-collapse) .panel-collapse').on('show.bs.collapse hide.bs.collapse', e => {
+    var collapsibles = appSettings.get('collapsibles', {});
+    collapsibles[this.id] = e.type;
+    appSettings.set('collapsibles', collapsibles);
+  });
+
+  $('#collapseLyrics')
+    .on('shown.bs.collapse', () => {
+      var property = JS.indexBy(appSettings.get('properties', {}), 'id')['jw-library-languages-page'];
+      if (property) {
+        var url = property.value;
+        console.log(url);
+        $.ajax({
+          url,
+          success(html) {
+            //selLibLangs
+            var [rsconf, lib] = (url.match(/\/(r\d+)\/(lp-\w+)(?:[\/#\?]|$)/) || []).slice(1);
+            var langs = executePropFunc('parse-jw-library-languages-page', [html, rsconf, lib]);
+            $('#selLibLangs').html('<option></option>');
+            langs.forEach(({name, lang, rsconf, lib}) => {
+              $('#selLibLangs').append(JS.dom({
+                _: 'option',
+                value: `${rsconf}/${lib}`,
+                text: `${name} - ${lang}`
+              }));
+            });
+            $('#selLibLangs').combobox('refresh');
+            $('#collapseLyrics .panel-body > .success').show();
+          },
+          error() {
+            $('#collapseLyrics .panel-body > .alert')
+              .show()
+              .find(' > .message')
+                .html(`An error occurred preventing the <a href="${url}" class="alert-link" target="_blank">Online JW Library language page</a> from loading.`);
+          },
+          dataType: 'html'
+        });
+      }
+      else {
+        $('#collapseLyrics .panel-body > .alert:eq(0)')
+          .show()
+          .find(' > .message')
+            .html(`The settings file is missing the <code>jw-library-languages-page</code> property.`);
+      }
+    })
+    .on('hidden.bs.collapse', JS.callReturn(() => $('#collapseLyrics .panel-body').find('> .alert, > .success').hide()));
+
+  $('#btnSetSongsDir').click(() => {
     dialog.showOpenDialog({
       properties: ['openDirectory']
-    }, function(dirPaths) {
+    }, dirPaths => {
       if (dirPaths) {
         var dirPath = dirPaths[0].replace(new RegExp(`(${JS.quoteRegExp(path.sep)})?$`), path.sep);
         appSettings.set('songsDir', dirPath);
@@ -700,6 +764,14 @@ $(function() {
         setDisplayDir(dirPath);
       }
     });
+  });
+
+  $('#btnRefreshDisplayDir').click(function() {
+    var dirPath = appSettings.get('displayDir');
+    if (!isDirectorySync(dirPath)) {
+      appSettings.set('displayDir', dirPath = undefined);
+    }
+    setDisplayDir(dirPath);
   });
 
   $('#btnBGMusic').click(function() {
@@ -845,7 +917,7 @@ function selectProperty(property, index) {
 
   $('#txtPropName').val(property.name).data('index', index);
 
-  $('#divPropFuncSig, #divPropCodeWrap').hide();
+  $('#divPropFuncSig, #divPropCodeWrap, #divPropInputWrap').hide();
 
   if (property.type == 'function') {
     $('#divPropFuncSig, #divPropCodeWrap').show();
@@ -897,6 +969,10 @@ function selectProperty(property, index) {
     propCodeEditor.setValue(property.value);
     propCodeEditor.focus();
   }
+  else if (['text', 'url'].includes(property.type)) {
+    $('#divPropInputWrap').show();
+    $('#txtPropInput').prop('type', property.type).val(property.value).focus();
+  }
   else {
     throw new Error(`Property type "${property.type}" is not handled.`);
   }
@@ -915,6 +991,9 @@ function hasCodeChanged() {
   var property = properties[$('#txtPropName').data('index')];
   if (['function', 'css'].includes(property.type)) {
     return property.value != propCodeEditor.getValue();
+  }
+  else if (['text', 'url'].includes(property.type)) {
+    return property.value != $('#txtPropInput').val();
   }
   else {
     throw new Error(`Property type "${property.type}" is not handled.`);
@@ -947,6 +1026,9 @@ function updatePropCode(isUserInitiated) {
       if (property.id == 'presenter-css') {
         ipcMain.emit('update-presenter-css', property.value);
       }
+    }
+    else if (['text', 'url'].includes(property.type)) {
+      property.value = $('#txtPropInput').val();
     }
     else {
       throw new Error(`Property type "${property.type}" is not handled.`);
