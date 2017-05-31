@@ -116,8 +116,6 @@ html, body {
   cursor: help;
 }
 
-.middler-wrap {
-}
 .middler-table {
   display: table;
   width: 100%;
@@ -127,19 +125,6 @@ html, body {
   display: table-cell;
   text-align: center;
   vertical-align: middle;
-}
-
-.middler-wrap.overlay {
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9999;
-  position: absolute;
-}
-.middler-wrap.overlay .middler-content {
-  background: rgba(255,255,255,0.85);
-  color: #000;
 }
 
 progress {

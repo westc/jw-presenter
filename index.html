@@ -24,9 +24,10 @@
     ['ace', 'mode-javascript', 'mode-markdown', 'mode-css'].forEach((v) => require(`./ace/src/${v}`));
     ace.config.set('basePath', 'ace/src');
 
-    // Load the index script
+    // Load the index and loader scripts
     require('./index');
     </script>
+    <script type="text/JavaScript" src="./loader.js"></script>
 
     <link href="index.css" rel="stylesheet" />
 
@@ -198,7 +199,30 @@
                           <div class="panel-body">
                             <div class="alert alert-danger" role="alert"><b>Uh oh!</b> <span class="message"></span></div>
                             <div class="success">
-                              <select id="selLibLangs" class="form-control combobox"></select>
+                              <form id="formLyricsLang" style="display: table; width: 100%;">
+                                <div style="display: table-cell; width: 1px; vertical-align: middle;">
+                                  <label for="selLibLangs">Language:</label>
+                                </div>
+                                <div style="display: table-cell; padding: 0 1em; vertical-align: middle;">
+                                  <select id="selLibLangs" class="form-control combobox"></select>
+                                </div>
+                                <div style="display: table-cell; width: 1px; vertical-align: middle;">
+                                  <button class="btn btn-default btn-primary" type="submit" style="text-shadow: none;">Get Lyrics</button>
+                                </div>
+                              </form>
+
+                              <table id="tblLyricsImport" class="table table-hover table-striped">
+                                <thead>
+                                  <tr>
+                                    <th>Song Number</th>
+                                    <th>Title</th>
+                                    <th>Text</th>
+                                    <th>Stanzas</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                              </table>
                             </div>
                           </div>
                         </div>

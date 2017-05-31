@@ -104,3 +104,72 @@ function fitInto(desiredWidth, desiredHeight, actualWidth, actualHeight) {
   }
   return { width: desiredWidth, height: desiredHeight };
 }
+
+function showSong({heading, title, theme, stanzas}, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, onEnd) {
+  var jLine, jWrap = $('<div class="song-wrap"></div>').appendTo('body');
+  var jHeadWrap = $('<div class="heading-wrap"></div>').appendTo(jWrap);
+  var jHeading = $('<div class="song-number"></div>').text(heading).appendTo(jHeadWrap);
+  var jTitle = $('<div class="title"></div>').text(title).appendTo(jHeadWrap);
+  var jTheme = $('<div class="theme-text"></div>').text(theme).appendTo(jHeadWrap);
+  var jTable = $('<div class="lyrics-table"></div>').appendTo(jWrap);
+  
+  stanzas.forEach(function(lines, i) {
+    var jRow = $('<div class="stanza"></div>').appendTo(jTable);
+    
+    var jCell1 = $('<div class="number-cell"></div>').text(`${i+1}.`).appendTo(jRow);
+    
+    var jCell2 = $('<div class="lines-cell"></div>').appendTo(jRow);
+    
+    lines.forEach(function(line, i) {
+      jLine = $('<div class="line"></div>').css('paddingLeft', i % 2 ? '1em' : 0).text(line).appendTo(jCell2);
+    });
+  });
+  
+  jTable.css('fontSize', `${100*$(window).outerWidth()/jTable.outerWidth()}vw`);
+  
+  var msPassedAtPause;
+  var tsStart = +new Date();
+  var msDelay = secsDelay * 1000;
+  var msEndEarly = secsToEndEarly * 1000;
+  var msScrollTime = (secsDuration - secsDelay - secsToEndEarly) * 1000;
+  var msDuration = secsDuration * 1000;
+  var interval = setInterval(function() {
+    var tsNow = +new Date();
+    var timePast = tsNow - tsStart;
+    if (timePast >= msDelay) {
+      var percent = Math.min((timePast - msDelay) / (msScrollTime - msEndEarly), 1);
+      var fullDistance = jWrap.outerHeight() - jLine.outerHeight() * linesToShowAtEnd;
+      Math.min(percent, 1);
+      jWrap.css('top', -percent * fullDistance);
+      if (timePast >= msDuration) {
+        clearInterval(interval);
+        onEnd('ended');
+      }
+    }
+  }, 100);
+  
+  return function(action, value) {
+    if (interval == undefined) {
+      throw new Error('The song has already finished being shown.');
+    }
+    
+    if (action == 'stop') {
+      clearInterval(interval);
+      interval = undefined;
+      onEnd('stopped');
+    }
+    else if (action == 'time') {
+      tsStart = +new Date() - value * 1000;
+    }
+    else if (action == 'pause') {
+      msPassedAtPause = msPassedAtPause || +new Date() - tsStart;
+    }
+    else if (action == 'play') {
+      tsStart = +new Date() - msPassedAtPause;
+      msPassedAtPause = 0;
+    }
+    else {
+      throw new Error(`Unsupported action "${action}".`);
+    }
+  };
+}
