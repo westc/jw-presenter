@@ -1,85 +1,78 @@
+const fs = require('fs');
+const isFileSync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isFile();
+
 const path = require('path');
 const { BrowserWindow, ipcMain } = require('electron').remote;
 const { presenter: winPresenter, main: winMain } = JS.indexBy(BrowserWindow.getAllWindows(), 'name');
 const markdown = new (require('showdown').Converter);
 
-var media, mediaWidth, mediaHeight, defaultText;
+const APP_BASE_PATH = path.dirname(require.main.filename);
+const APP_SETTINGS_PATH = path.join(APP_BASE_PATH, 'settings.json');
 
-ipcMain.on('show-image', function(cleanPath, details) {
-  reset();
-
-  $('body').addClass('showing-media showing-image');
-
-  ({width: mediaWidth, height: mediaHeight} = details);
-  $('.middler-content').append(media = JS.dom({ _: 'img', src: cleanPath }));
-  resizeMedia();
-});
-
-ipcMain.on('show-video', function(cleanPath, details) {
-  reset();
-
-  $('body').addClass('showing-media showing-video');
-
-  ({width: mediaWidth, height: mediaHeight} = details);
-  $('.middler-content')
-    .append(media = JS.dom({
-      _: 'video',
-      src: cleanPath,
-      onended: function() {
-        reset();
-        ipcMain.emit('ended-presenter-video');
-      }
-    }));
-  resizeMedia();
-  media.play();
-});
-
-ipcMain.on('show-text', function(strText) {
-  reset();
-  $('body').addClass('showing-media showing-text');
-  $('.middler-content:eq(0)').html(markdown.makeHtml(strText));
-});
-
-ipcMain.on('unset-default-text', function() {
-  if (!$('body').is('.showing-media')) {
-    reset();
+const MEDIA_PRESENTERS = {
+  image: function(cleanPath, details) {
+    ({width: mediaWidth, height: mediaHeight} = details);
+    $('.middler-content').append(media = JS.dom({ _: 'img', src: cleanPath }));
+    resizeMedia();
+  },
+  video: function(cleanPath, details) {
+    ({width: mediaWidth, height: mediaHeight} = details);
+    $('.middler-content')
+      .append(media = JS.dom({
+        _: 'video',
+        src: cleanPath,
+        onended() {
+          ipcMain.emit('ended-presenter-video');
+        }
+      }));
+    resizeMedia();
+    media.play();
+  },
+  text: function(strText) {
+    $('.middler-content:eq(0)').html(markdown.makeHtml(strText));
+  },
+  lyrics: function(lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly) {
+    lyricsControl = showSongLyrics(lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, showDefaultText);
   }
-  defaultText = undefined;
-});
+};
 
-ipcMain.on('set-default-text', function(strText) {
+var media, mediaWidth, mediaHeight, defaultText, lyricsControl;
+
+function showDefaultText() {
   reset();
-  defaultText = strText;
-  if (!$('body').is('.showing-media')) {
-    $('.middler-content:eq(0)').html(markdown.makeHtml(defaultText));
+  
+  var defaultText = getDefaultText();
+  if (defaultText) {
+    $('body').addClass('showing-default-text showing-text');
   }
-});
+  $('.middler-content:eq(0)').html(markdown.makeHtml(defaultText.text || ''));
+}
 
-ipcMain.on('reset-presenter', function() {
-  reset();
-  ipcMain.emit('resend-default-text');
-});
+function getDefaultText() {
+  try {
+    var settings = readFileJSON(APP_SETTINGS_PATH);
+    return settings.texts[settings.defaultTextIndex];
+  } catch(e){}
+}
+
+function readFileJSON(filePath) {
+  fs.openSync(filePath, 'r+');
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
 
 function reset() {
+  if (lyricsControl && $('body').is('.showing-lyrics')) {
+    console.log({lyricsControl});
+    lyricsControl('stop');
+    lyricsControl = null;
+  }
+
   media = null;
   $('body')
-    .removeClass('showing-media showing-text showing-video showing-image')
+    .removeClass('showing-media showing-text showing-default-text showing-video showing-image showing-lyrics')
     .css('background-image', '');
   $('.middler-content').html('');
 }
-
-ipcMain.on('update-presenter-css', function(code) {
-  var style = $('#presenterStyle')[0];
-  if (style.styleSheet && !style.sheet) {
-    style.styleSheet.cssText = code;
-  }
-  else {
-    style.innerHTML = '';
-    style.appendChild(document.createTextNode(code));
-  }
-});
-
-winPresenter.on('resize', resizeMedia);
 
 function resizeMedia() {
   if (media) {
@@ -105,7 +98,7 @@ function fitInto(desiredWidth, desiredHeight, actualWidth, actualHeight) {
   return { width: desiredWidth, height: desiredHeight };
 }
 
-function showSong({heading, title, theme, stanzas}, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, onEnd) {
+function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, onEnd) {
   var jLine, jWrap = $('<div class="song-wrap"></div>').appendTo('body');
   var jHeadWrap = $('<div class="heading-wrap"></div>').appendTo(jWrap);
   var jHeading = $('<div class="song-number"></div>').text(heading).appendTo(jHeadWrap);
@@ -115,13 +108,10 @@ function showSong({heading, title, theme, stanzas}, linesToShowAtEnd, secsDurati
   
   stanzas.forEach(function(lines, i) {
     var jRow = $('<div class="stanza"></div>').appendTo(jTable);
-    
     var jCell1 = $('<div class="number-cell"></div>').text(`${i+1}.`).appendTo(jRow);
-    
     var jCell2 = $('<div class="lines-cell"></div>').appendTo(jRow);
-    
     lines.forEach(function(line, i) {
-      jLine = $('<div class="line"></div>').css('paddingLeft', i % 2 ? '1em' : 0).text(line).appendTo(jCell2);
+      jLine = $('<div class="line"></div>').css('paddingLeft', `${i&&(i%2+1)}em`).text(line).appendTo(jCell2);
     });
   });
   
@@ -144,22 +134,30 @@ function showSong({heading, title, theme, stanzas}, linesToShowAtEnd, secsDurati
         Math.min(percent, 1);
         jWrap.css('top', -percent * fullDistance);
         if (timePast >= msDuration) {
-          clearInterval(interval);
-          onEnd('ended');
+          stop('ended');
         }
       }
     }, 100);
   }
+
+  function stop(type) {
+    clearInterval(interval);
+    interval = undefined;
+    jWrap.remove();
+    onEnd('ended');
+  }
+
+  play();
   
   return function(action, value) {
-    if (interval == undefined) {
+    if (interval == undefined && action != 'stop') {
       throw new Error('The song has already finished being shown.');
     }
     
     if (action == 'stop') {
-      clearInterval(interval);
-      interval = undefined;
-      onEnd('stopped');
+      if (interval != undefined) {
+        stop('stop');
+      }
     }
     else if (action == 'time') {
       tsStart = +new Date() - value * 1000;
@@ -178,3 +176,52 @@ function showSong({heading, title, theme, stanzas}, linesToShowAtEnd, secsDurati
     }
   };
 }
+
+function onReady() {
+  ipcMain.on('present-media', function(mediaType) {
+    reset();
+
+    var caller = MEDIA_PRESENTERS[mediaType];
+    if (caller) {
+      $('body').addClass(`showing-media showing-${mediaType}`);
+      caller.apply(this, JS.slice(arguments, 1));
+      ipcMain.emit('media-presented');
+    }
+    else {
+      console.error(`Unsupported media type: ${mediaType}`);
+    }
+  });
+
+  ipcMain.on('update-default-text', function() {
+    if ($('body').is(':not(.showing-media)')) {
+      showDefaultText();
+    }
+  });
+
+  ipcMain.on('unpresent-media', function() {
+    showDefaultText();
+  })
+
+  ipcMain.on('set-default-text', function(strText) {
+    reset();
+    defaultText = strText;
+    if (!$('body').is('.showing-media')) {
+      $('.middler-content:eq(0)').html(markdown.makeHtml(defaultText));
+    }
+  });
+
+  ipcMain.on('update-presenter-css', function(code) {
+    var style = $('#presenterStyle')[0];
+    if (style.styleSheet && !style.sheet) {
+      style.styleSheet.cssText = code;
+    }
+    else {
+      style.innerHTML = '';
+      style.appendChild(document.createTextNode(code));
+    }
+  });
+
+  winPresenter.on('resize', resizeMedia);
+}
+
+$(onReady);

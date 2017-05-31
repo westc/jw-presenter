@@ -13,6 +13,7 @@ app.on('ready', function() {
   winPresenter.name = 'presenter';
   winPresenter.loadURL(`file://${__dirname}/presenter.html`);
   winPresenter.on('close', () => app.quit());
+  winPresenter.maximize();
 
   var winMain = new BrowserWindow({
     // https://codepen.io/cwestify/pen/rmdZBN
