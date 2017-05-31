@@ -127,26 +127,29 @@ function showSong({heading, title, theme, stanzas}, linesToShowAtEnd, secsDurati
   
   jTable.css('fontSize', `${100*$(window).outerWidth()/jTable.outerWidth()}vw`);
   
-  var msPassedAtPause;
+  var msPassedAtPause, interval;
   var tsStart = +new Date();
   var msDelay = secsDelay * 1000;
   var msEndEarly = secsToEndEarly * 1000;
   var msScrollTime = (secsDuration - secsDelay - secsToEndEarly) * 1000;
   var msDuration = secsDuration * 1000;
-  var interval = setInterval(function() {
-    var tsNow = +new Date();
-    var timePast = tsNow - tsStart;
-    if (timePast >= msDelay) {
-      var percent = Math.min((timePast - msDelay) / (msScrollTime - msEndEarly), 1);
-      var fullDistance = jWrap.outerHeight() - jLine.outerHeight() * linesToShowAtEnd;
-      Math.min(percent, 1);
-      jWrap.css('top', -percent * fullDistance);
-      if (timePast >= msDuration) {
-        clearInterval(interval);
-        onEnd('ended');
+
+  function play() {
+    interval = setInterval(function() {
+      var tsNow = +new Date();
+      var timePast = tsNow - tsStart;
+      if (timePast >= msDelay) {
+        var percent = Math.min((timePast - msDelay) / (msScrollTime - msEndEarly), 1);
+        var fullDistance = jWrap.outerHeight() - jLine.outerHeight() * linesToShowAtEnd;
+        Math.min(percent, 1);
+        jWrap.css('top', -percent * fullDistance);
+        if (timePast >= msDuration) {
+          clearInterval(interval);
+          onEnd('ended');
+        }
       }
-    }
-  }, 100);
+    }, 100);
+  }
   
   return function(action, value) {
     if (interval == undefined) {
@@ -162,11 +165,13 @@ function showSong({heading, title, theme, stanzas}, linesToShowAtEnd, secsDurati
       tsStart = +new Date() - value * 1000;
     }
     else if (action == 'pause') {
+      clearInterval(interval);
       msPassedAtPause = msPassedAtPause || +new Date() - tsStart;
     }
     else if (action == 'play') {
       tsStart = +new Date() - msPassedAtPause;
       msPassedAtPause = 0;
+      play();
     }
     else {
       throw new Error(`Unsupported action "${action}".`);
