@@ -1,5 +1,13 @@
 var path = require('path');
-const {app, BrowserWindow, Menu, shell} = require('electron');
+const {app, BrowserWindow, Menu, shell, powerSaveBlocker} = require('electron');
+
+// Prevents display(s) from sleeping
+const PREVENT_DISPLAY_SLEEP_ID = powerSaveBlocker.start('prevent-display-sleep');
+
+app.on('quit', function() {
+  // Re-enable display auto sleep
+  powerSaveBlocker.stop(PREVENT_DISPLAY_SLEEP_ID);
+});
 
 app.on('ready', function() {
   // Load the presenter first so that any settings will propagate into it afterwards (eg. presenter-css)

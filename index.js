@@ -423,7 +423,7 @@ function playSongAt(i, opt_lyricsIndex) {
   if (opt_lyricsIndex != undefined) {
     try {
       if (lyricsData = readFileJSON(APP_LYRICS_PATH)[opt_lyricsIndex]) {
-        ipcMain.emit('present-media', 'lyrics', lyricsData, 3, song.duration, 10, 0);
+        ipcMain.emit('present-media', 'lyrics', lyricsData, 3, song.duration, 12, 2);
       }
     }
     catch(e) {
@@ -620,7 +620,7 @@ function setDisplayTextListItem(jListItem, text, textIndex) {
         .addClass('image-wrap')
         .append(`
           <div>
-            <div class="presenter-aspect-ratio-wrap body">
+            <div class="presenter-aspect-ratio-wrap body showing-text">
               <div class="middler-wrap">
                 <div class="middler-table">
                   <div class="middler-content">
@@ -648,6 +648,7 @@ function setDisplayTextListItem(jListItem, text, textIndex) {
         }
         else {
           unpressActiveMediaButtons();
+          audio.pause();
           ipcMain.emit('present-media', 'text', text.text);
         }
         jThis.toggleClass('active');
@@ -780,7 +781,7 @@ $(function() {
 
   $('.panel:not(.dont-save-collapse) .panel-collapse').on('show.bs.collapse hide.bs.collapse', e => {
     var collapsibles = appSettings.get('collapsibles', {});
-    collapsibles[this.id] = e.type;
+    collapsibles[e.target.id] = e.type;
     appSettings.set('collapsibles', collapsibles);
   });
 

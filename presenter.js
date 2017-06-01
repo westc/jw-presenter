@@ -43,7 +43,7 @@ function showDefaultText() {
   
   var defaultText = getDefaultText();
   if (defaultText) {
-    $('body').addClass('showing-default-text showing-text');
+    $('body, .body').addClass('showing-default-text showing-text');
   }
   $('.middler-content:eq(0)').html(markdown.makeHtml(defaultText.text || ''));
 }
@@ -62,13 +62,12 @@ function readFileJSON(filePath) {
 
 function reset() {
   if (lyricsControl && $('body').is('.showing-lyrics')) {
-    console.log({lyricsControl});
     lyricsControl('stop');
     lyricsControl = null;
   }
 
   media = null;
-  $('body')
+  $('body, .body')
     .removeClass('showing-media showing-text showing-default-text showing-video showing-image showing-lyrics')
     .css('background-image', '');
   $('.middler-content').html('');
@@ -99,21 +98,25 @@ function fitInto(desiredWidth, desiredHeight, actualWidth, actualHeight) {
 }
 
 function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, onEnd) {
-  var jLine, jWrap = $('<div class="song-wrap"></div>').appendTo('body');
-  var jHeadWrap = $('<div class="heading-wrap"></div>').appendTo(jWrap);
-  var jHeading = $('<div class="song-number"></div>').text(heading).appendTo(jHeadWrap);
-  var jTitle = $('<div class="title"></div>').text(title).appendTo(jHeadWrap);
-  var jTheme = $('<div class="theme-text"></div>').text(theme).appendTo(jHeadWrap);
-  var jTable = $('<div class="lyrics-table"></div>').appendTo(jWrap);
-  
-  stanzas.forEach(function(lines, i) {
-    var jRow = $('<div class="stanza"></div>').appendTo(jTable);
-    var jCell1 = $('<div class="number-cell"></div>').text(`${i+1}.`).appendTo(jRow);
-    var jCell2 = $('<div class="lines-cell"></div>').appendTo(jRow);
-    lines.forEach(function(line, i) {
-      jLine = $('<div class="line"></div>').css('paddingLeft', `${i&&(i%2+1)}em`).text(line).appendTo(jCell2);
-    });
-  });
+  var jWrap = $('<div class="song-wrap"></div>').appendTo('body').append(
+        $('<div class="heading-wrap"></div>').append(
+          $('<div class="song-number"></div>').text(heading),
+          $('<div class="title"></div>').text(title),
+          $('<div class="theme-text"></div>').text(theme)
+        ),
+        $('<div class="lyrics-table"></div>').css('fontSize', '100vw').append(
+          stanzas.map((lines, i) =>
+            $('<div class="stanza"></div>').append(
+              $('<div class="number-cell"></div>').text(`${i+1}.`),
+              $('<div class="lines-cell"></div>').append(
+                lines.map((line, i) => $('<div class="line"></div>').css('paddingLeft', `${i&&(i%2+1)}em`).text(line))
+              )
+            )
+          )
+        )
+      ).css('opacity', 0).fadeTo(1000, 1),
+      jTable = jWrap.find('.lyrics-table:eq(0)'),
+      jLine = jTable.find('.line:eq(0)');
   
   jTable.css('fontSize', `${100*$(window).outerWidth()/jTable.outerWidth()}vw`);
   
@@ -183,7 +186,7 @@ function onReady() {
 
     var caller = MEDIA_PRESENTERS[mediaType];
     if (caller) {
-      $('body').addClass(`showing-media showing-${mediaType}`);
+      $('body, .body').addClass(`showing-media showing-${mediaType}`);
       caller.apply(this, JS.slice(arguments, 1));
       ipcMain.emit('media-presented');
     }
