@@ -1,7 +1,7 @@
 var path = require('path');
 const {app, BrowserWindow, Menu, shell, powerSaveBlocker, ipcMain} = require('electron');
 
-var isMeetingAppOpen, isServiceAppOpen;
+var isMeetingAppOpen, isPreachingAppOpen;
 
 app.on('ready', function() {
   var win = new BrowserWindow({
@@ -22,7 +22,72 @@ app.on('ready', function() {
   win.name = 'opener';
 });
 
-ipcMain.on('start-meeting-app', function() {
+ipcMain.on('start-preaching-app', () => {
+  if (isPreachingAppOpen) { return; }
+  isPreachingAppOpen = true;
+
+  function setMenu() {
+    Menu.setApplicationMenu(Menu.buildFromTemplate([
+      {
+        label: "JW Presenter",
+        submenu: [
+          { label: 'Quit', accelerator: 'CmdOrCtrl+Q', click: function() { app.quit(); } }
+        ]
+      },
+      {
+        label: "Edit",
+        submenu: [
+          { label: 'Undo', accelerator: 'CmdOrCtrl+Z', role: 'undo' },
+          { label: 'Redo', accelerator: 'CmdOrCtrl+Shift+Z', role: 'redo' },
+          { type: 'separator' },
+          { label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut' },
+          { label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy' },
+          { label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste' },
+          { label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectall' }
+        ]
+      },
+      {
+        label: "View",
+        submenu: [
+          {
+            label: 'Reload',
+            accelerator: 'CmdOrCtrl+R',
+            click() { mainWindow.reload(); }
+          },
+          { type: 'separator' },
+          {
+            label: 'Toggle Dev Tools',
+            accelerator: 'CmdOrCtrl+Alt+I',
+            click() {
+              var focusedWindow = BrowserWindow.getFocusedWindow();
+              focusedWindow && focusedWindow.webContents.toggleDevTools();
+            }
+          },
+          { type: 'separator' },
+          {
+            label: 'Toggle Fullscreen',
+            role: 'togglefullscreen',
+            click: function() {
+              mainWindow.setFullScreen(!mainWindow.isFullScreen());
+            }
+          }
+        ]
+      }
+    ]));
+  }
+
+  var mainWindow = new BrowserWindow({
+    // https://codepen.io/cwestify/pen/eWVNwx
+    icon: path.join(__dirname, 'assets/icons/256×256.png')
+  });
+  mainWindow.maximize();
+  mainWindow.on('focus', setMenu);
+  mainWindow.once('show', setMenu);
+  mainWindow.loadURL('file:///' + __dirname + '/preaching/index.html');
+  mainWindow.on('close', () => { isPreachingAppOpen = false; });
+});
+
+ipcMain.on('start-meeting-app', () => {
   if (isMeetingAppOpen) { return; }
   isMeetingAppOpen = true;
 
@@ -39,30 +104,6 @@ ipcMain.on('start-meeting-app', function() {
 
     isMeetingAppOpen = false;
   }
-
-  // Load the presenter first so that any settings will propagate into it afterwards (eg. presenter-css)
-  var winPresenter = new BrowserWindow({
-    // https://codepen.io/cwestify/pen/rmdZBN
-    icon: path.join(__dirname, 'assets/icons/256×256.png'),
-    frame: true,
-    transparent: false,
-    shadow: true
-  });
-  winPresenter.name = 'presenter';
-  winPresenter.on('focus', setMenu);
-  winPresenter.once('close', onQuit);
-  winPresenter.loadURL(`file://${__dirname}/meetings/presenter.html`);
-  winPresenter.maximize();
-
-  var winMain = new BrowserWindow({
-    // https://codepen.io/cwestify/pen/rmdZBN
-    icon: path.join(__dirname, 'assets/icons/256×256.png')
-  });
-  winMain.name = 'main';
-  winMain.on('focus', setMenu);
-  winMain.once('show', setMenu);
-  winMain.once('close', onQuit);
-  winMain.loadURL(`file://${__dirname}/meetings/index.html`);
 
   function setMenu() {
     Menu.setApplicationMenu(Menu.buildFromTemplate([
@@ -138,4 +179,28 @@ ipcMain.on('start-meeting-app', function() {
       }
     ]));
   }
+
+  // Load the presenter first so that any settings will propagate into it afterwards (eg. presenter-css)
+  var winPresenter = new BrowserWindow({
+    // https://codepen.io/cwestify/pen/rmdZBN
+    icon: path.join(__dirname, 'assets/icons/256×256.png'),
+    frame: true,
+    transparent: false,
+    shadow: true
+  });
+  winPresenter.name = 'presenter';
+  winPresenter.on('focus', setMenu);
+  winPresenter.once('close', onQuit);
+  winPresenter.loadURL(`file://${__dirname}/meetings/presenter.html`);
+  winPresenter.maximize();
+
+  var winMain = new BrowserWindow({
+    // https://codepen.io/cwestify/pen/rmdZBN
+    icon: path.join(__dirname, 'assets/icons/256×256.png')
+  });
+  winMain.name = 'main';
+  winMain.on('focus', setMenu);
+  winMain.once('show', setMenu);
+  winMain.once('close', onQuit);
+  winMain.loadURL(`file://${__dirname}/meetings/index.html`);
 });

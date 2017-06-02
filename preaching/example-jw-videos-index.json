@@ -1,0 +1,31 @@
+{
+  "vids": [
+    {
+      "name": "Caleb 1.mp4",  // Name of file
+      "title": "Caleb 1",  // Derived from the file name
+      "size": 12932812,  // Size in bytes
+      "birth_time": 1235918234934,  // Time file created
+      "show_time": 2983492835923,  // Last time shown
+      "duration": 21,  // Duration in seconds
+      "has_thumbnail": false,
+      "keywords": [
+        "Become Jehovah's Friend",
+        "Sandwich"
+      ],
+      "slides": [
+        {
+          "before": false,
+          "text": "How should Caleb have asked his mom for the sandwich?",
+          "background": "#000",  // Can be a color or the amount of seconds in the video
+          "text_position": "bottom"  // top, middle or bottom
+        },
+        {
+          "before": false,
+          "text": "How did Caleb ask for the sandwich when he did it the right way?",
+          "background": 23,  // Represents the seconds in the video
+          "text_position": "bottom"  // top, middle, or bottom
+        }
+      ]
+    }
+  ]
+}

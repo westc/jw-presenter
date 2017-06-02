@@ -1,0 +1,157 @@
+body {
+  padding-top: 70px;
+}
+body.no-mouse {
+  cursor: none;
+}
+
+.has-feedback .form-control-feedback.glyphicon-ok,
+.has-feedback .form-control-feedback.glyphicon-remove {
+  display: none;
+}
+.has-feedback.has-success .form-control-feedback.glyphicon-ok,
+.has-feedback.has-error .form-control-feedback.glyphicon-remove {
+  display: inherit;
+}
+
+#videoModal video {
+  width: 100%;
+}
+.video-div-wrap {
+  padding: 5px;
+  box-shadow: 0 0 5px 1px;
+  border-radius: 5px;
+  margin: 0 0 10px;
+  transition: 0.5s ease all;
+}
+.video-div-wrap:hover {
+  cursor: pointer;
+  box-shadow: 0 0 5px 5px #08F;
+  color: #08F;
+}
+.video-table-wrap {
+  width: 100%;
+}
+.video-table-wrap .video-thumbnail {
+  height: 135px;
+  width: 240px;
+}
+.video-table-wrap .video-thumbnail img {
+  border-radius: 5px;
+  width: 100%;
+}
+.video-table-wrap .video-details {
+  padding-left: 5px;
+  vertical-align: top;
+}
+.video-table-wrap .title-wrap {
+  font-size: 1.5em;
+}
+.video-table-wrap .title-wrap .buttons {
+  float: right;
+}
+.video-table-wrap .title-wrap .btn-group {
+  margin-left: 0.25em;
+}
+.video-table-wrap .title-wrap .btn {
+  color: #000;
+}
+.video-table-wrap .title-wrap .btn:hover {
+  color: #08F;
+}
+
+ul.list-keywords {
+  list-style: none;
+  margin: 0.5em;
+  padding-left: 0;
+}
+ul.list-keywords > li, .keyword {
+  display: inline-block;
+  background-color: #6BF;
+  box-shadow: 0 0 1px 1px #07F, inset 0 0 0.1em 1px #FFF;
+  padding: 1px 5px;
+  margin: 0 3px;
+  border-radius: 0.2em;
+  color: #FFF;
+  font-weight: 100;
+}
+ul.list-keywords > li {
+  font-family: 'Helvetica';
+  font-size: 0.8em;
+  font-weight: 100;
+  transition: 0.25s ease all;
+  padding: 5px;
+}
+ul.list-keywords > li:before, ul.list-keywords > li:after {
+  content: '\00a0\00a0';
+}
+ul.list-keywords > li:hover {
+  background-color: #F66;
+  box-shadow: 0 0 1px 1px #F00, inset 0 0 0.1em 1px #FFF;
+  cursor: pointer;
+  text-decoration: line-through;
+}
+
+#slideWrap {
+  display: none;
+}
+#slideWrap.showing {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  transition: 0.5s ease background-image;
+}
+#slideWrap.showing, .slide-thumbnail {
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-color: #000;
+  background-size: contain;
+  overflow: hidden;
+}
+.slide-thumbnail {
+  position: relative;
+}
+#slideWrap.showing .text, .slide-thumbnail .text {
+  background: rgba(255, 255, 255, 0.4);
+  position: absolute;
+  top: 66%;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.1em;
+  line-height: 1em;
+  text-shadow: 0 0 0.1em #FFF, 0 0 0.2em #FFF;
+  box-shadow: 0 0 0.1em #000;
+  border-radius: 0.2em 0.2em 0 0;
+  text-align: center;
+}
+#slideWrap.showing .buttons {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.1em;
+}
+
+.table-time {
+  width: 100%;
+}
+.table-time .td-range {
+  width: 99%;
+}
+.table-time .td-text {
+  width: 1px;
+}
+.table-time .td-text .time {
+  font-family: 'Courier New', monospace;
+  border: 0;
+  background: none;
+  text-align: center;
+}
+
+.slide input.text {
+  width: 100%;
+}
