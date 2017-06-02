@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>JW Presenter</title>
+
+    <!-- Bootstrap -->
+    <link href="../bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../bootstrap-3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
+    <link href="../bootstrap-combobox/css/bootstrap-combobox.css" rel="stylesheet">
+
+    <!-- YourJS (JS) and jQuery (used by Bootstrap and just in general) -->
+    <script type="text/JavaScript">
+    // Load YourJS (JS)
+    var JS = require('./../YourJS/JS.js');
+
+    // Load jQuery (jQuery)
+    var jQuery = require('./../jquery-2.2.1.min.js'), $ = jQuery;
+
+    // Load ACE (ace)
+    ['ace', 'mode-javascript', 'mode-markdown', 'mode-css'].forEach((v) => require(`./../ace/src/${v}`));
+    ace.config.set('basePath', 'ace/src');
+
+    // Load the index and loader scripts
+    require('./index');
+    </script>
+    <script type="text/JavaScript" src="./../loader.js"></script>
+
+    <link href="index.css" rel="stylesheet" />
+
+    <style id="dynamicStyle" type="text/css"></style>
+    <style id="presenterStyle" type="text/css"></style>
+  </head>
+  <body>
+    <div id="divWrapAll">
+      <table id="tblWrapAll" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr>
+            <td id="tdWrapAllTabs">
+              <!-- Nav tabs -->
+              <ul class="nav nav-tabs" role="tablist">
+                <li role="presentation" class="active"><a href="#musicPanel" aria-controls="musicPanel" role="tab" data-toggle="tab" data-panelhead="musicPanelHead">Music</a></li>
+                <li role="presentation"><a href="#displayPanel" aria-controls="displayPanel" role="tab" data-toggle="tab">Display</a></li>
+                <li role="presentation"><a href="#settingsPanel" aria-controls="settingsPanel" role="tab" data-toggle="tab">Settings</a></li>
+              </ul>
+              <div id="musicPanelHead" class="tab-panel-head line-margin-after" role="tabpanelhead">
+                <button id="btnBGMusic" type="button" class="btn btn-default">Background Music</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td id="tdWrapAllTabPanes">
+              <div id="divWrapAllTabPanes">
+                <!-- Tab panes -->
+                <div class="tab-content">
+                  <div role="tabpanel" class="tab-pane active" id="musicPanel">
+                    <div id="songsList"></div>
+                  </div>
+
+                  <div role="tabpanel" class="tab-pane" id="displayPanel">
+                    <div class="input-group line-margin-after">
+                      <span class="input-group-btn">
+                        <button class="js-btn-set-media-dir btn btn-default" type="button">Set Media Directory</button>
+                      </span>
+                      <input class="js-txt-media-dir form-control" type="text" readonly />
+                      <span class="input-group-btn">
+                        <button class="js-btn-refresh-media-dir btn btn-default" type="button">
+                          <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        </button>
+                      </span>
+                    </div>
+                    <div class="panel-group" id="displayAccordionGroup" role="tablist" aria-multiselectable="true">
+                      <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="collapseImagesHeader">
+                          <h4 class="panel-title">
+                            <a role="button" data-toggle="collapse" href="#collapseImages" aria-expanded="false" aria-controls="collapseImages">
+                              Images
+                            </a>
+                          </h4>
+                        </div>
+                        <div id="collapseImages" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseImagesHeader">
+                          <div class="panel-body">
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="collapseVideosHeader">
+                          <h4 class="panel-title">
+                            <a role="button" data-toggle="collapse" href="#collapseVideos" aria-expanded="false" aria-controls="collapseVideos">
+                              Videos
+                            </a>
+                          </h4>
+                        </div>
+                        <div id="collapseVideos" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseVideosHeader">
+                          <div class="panel-body">
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="collapseDisplayTextsHeader">
+                          <h4 class="panel-title">
+                            <a role="button" data-toggle="collapse" href="#collapseDisplayTexts" aria-expanded="false" aria-controls="collapseDisplayTexts">
+                              Texts (from Settings)
+                            </a>
+                          </h4>
+                        </div>
+                        <div id="collapseDisplayTexts" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseDisplayTextsHeader">
+                          <div class="panel-body">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div role="tabpanel" class="tab-pane" id="settingsPanel">
+
+                    <div class="panel-group" id="settingsAccordionGroup" role="tablist" aria-multiselectable="true">
+                      <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="collapseHeaderDirs">
+                          <h4 class="panel-title">
+                            <a role="button" data-toggle="collapse" href="#collapseDirs" aria-expanded="false" aria-controls="collapseDirs">
+                              Directories
+                            </a>
+                          </h4>
+                        </div>
+                        <div id="collapseDirs" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseHeaderDirs">
+                          <div class="panel-body">
+                            <div class="input-group line-margin-after">
+                              <span class="input-group-btn">
+                                <button id="btnSetSongsDir" type="button" class="btn btn-default">Set Songs Directory</button>
+                              </span>
+                              <input id="txtSongsDir" type="text" class="form-control" readonly />
+                              <span class="input-group-btn">
+                                <button id="btnRefreshSongsDir" type="button" class="btn btn-default">
+                                  <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                </button>
+                              </span>
+                            </div>
+
+                            <div class="input-group">
+                              <span class="input-group-btn">
+                                <button class="js-btn-set-media-dir btn btn-default" type="button">Set Media Directory</button>
+                              </span>
+                              <input class="js-txt-media-dir form-control" type="text" readonly />
+                              <span class="input-group-btn">
+                                <button class="js-btn-refresh-media-dir btn btn-default" type="button">
+                                  <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                </button>
+                              </span>
+                            </div>
+
+                            <!--div class="input-group">
+                              <span class="input-group-btn">
+                                <button id="btnSetBGDir" type="button" class="btn btn-default">Background Images</button>
+                              </span>
+                              <input id="txtBGDir" type="text" class="form-control" readonly />
+                            </div-->
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="collapseTextHeading">
+                          <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-toggle="collapse" href="#collapseText" aria-expanded="false" aria-controls="collapseText">Texts</a>
+                          </h4>
+                        </div>
+                        <div id="collapseText" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseTextHeading">
+                          <div class="panel-body">
+                            <div class="input-group line-margin-after">
+                              <label class="input-group-addon" id="lblTextName" for="txtTextName">Name:</label>
+                              <input type="text" class="form-control" id="txtTextName" aria-describedby="lblTextName">
+                              <div class="input-group-btn">
+                                <button id="btnDeleteText" type="button" class="btn btn-danger">
+                                  <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                                </button>
+                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                  <span class="caret"></span>
+                                </button>
+                                <ul id="textsList" class="dropdown-menu dropdown-menu-right">
+                                  <li role="separator" class="divider"></li>
+                                  <li><a id="linkAddText" href="#"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add A New Text</a></li>
+                                </ul>
+                              </div><!-- /input-group-button -->
+                            </div>
+
+                            <label id="lblText">Text (HTML &amp; <a href="https://guides.github.com/features/mastering-markdown/#examples" target="_blank">markdown styling</a> enabled):</label>
+                            <div id="divTextWrap" class="line-margin-after"><div id="divText"></div></div>
+
+                            <div id="divTextPreview">
+                              <div class="presenter-aspect-ratio-wrap body showing-text">
+                                <div class="middler-wrap">
+                                  <div class="middler-table">
+                                    <div class="middler-content">
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="panel panel-default dont-save-collapse">
+                        <div class="panel-heading" role="tab" id="collapseLyricsHeading">
+                          <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-toggle="collapse" href="#collapseLyrics" aria-expanded="false" aria-controls="collapseLyrics">Lyrics</a>
+                          </h4>
+                        </div>
+                        <div id="collapseLyrics" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseLyricsHeading">
+                          <div class="panel-body">
+                            <div class="alert alert-danger" role="alert"><b>Uh oh!</b> <span class="message"></span></div>
+                            <div class="success">
+                              <form id="formLyricsLang" style="display: table; width: 100%;">
+                                <div style="display: table-cell; width: 1px; vertical-align: middle;">
+                                  <label for="selLibLangs">Language:</label>
+                                </div>
+                                <div style="display: table-cell; padding: 0 1em; vertical-align: middle;">
+                                  <select id="selLibLangs" class="form-control combobox"></select>
+                                </div>
+                                <div style="display: table-cell; width: 1px; vertical-align: middle;">
+                                  <button class="btn btn-default btn-primary" type="submit" style="text-shadow: none;">Get Lyrics</button>
+                                </div>
+                              </form>
+
+                              <table id="tblLyricsImport" class="table table-hover table-striped">
+                                <thead>
+                                  <tr>
+                                    <th>Song Number</th>
+                                    <th>Title</th>
+                                    <th>Text</th>
+                                    <th>Stanzas</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="collapsePropsHeading">
+                          <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-toggle="collapse" href="#collapseProps" aria-expanded="false" aria-controls="collapseProps">Properties</a>
+                          </h4>
+                        </div>
+                        <div id="collapseProps" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapsePropsHeading">
+                          <div class="panel-body">
+                            <div class="input-group line-margin-after">
+                              <label class="input-group-addon" id="lblPropName" for="txtPropName">Name:</label>
+                              <input type="text" class="form-control" id="txtPropName" aria-describedby="lblPropName" readonly>
+                              <div class="input-group-btn">
+                                <button id="btnResetProp" type="button" class="btn btn-danger">
+                                  <span class="glyphicon glyphicon-fast-backward" aria-hidden="true"></span>
+                                </button>
+                                <button id="btnSaveProp" type="button" class="btn btn-primary">
+                                  <span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>
+                                </button>
+                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                  <span class="caret"></span>
+                                </button>
+                                <ul id="propsList" class="dropdown-menu dropdown-menu-right">
+                                </ul>
+                              </div><!-- /input-group-button -->
+                            </div>
+
+                            <div id="divPropFuncSig"></div>
+                            <div id="divPropCodeWrap"><div id="divPropCode"></div></div>
+                            <div id="divPropInputWrap"><input id="txtPropInput" class="form-control" /></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="../bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script src="../bootstrap-combobox/js/bootstrap-combobox.js"></script>
+  </body>
+</html>

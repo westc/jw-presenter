@@ -1,121 +1,26 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
+body {
+  background-image: url('assets/icons/512×512.png');
+  background-color: transparent;
 }
-.tab-pane {
-  padding-top: 0.5em;
-}
-.line-margin-after {
-  margin-bottom: 1em;
-}
-
-#divWrapAll {
+#contentWrap {
+  transition: 1s ease opacity;
+  opacity: 0;
   position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  background-color: rgba(255,255,255,0.5);
+  border-radius: 20px;
 }
-#tblWrapAll {
-  height: 100%;
-  width: 100%;
-}
-#tdWrapAllTabs {
-  height: 1px;
-}
-#tdWrapAllTabPanes {
-  height: 99%;
-}
-#divWrapAllTabPanes {
-  height: 100%;
-  overflow: auto;
-}
-#divTextWrap, #divPropCodeWrap {
-  box-shadow: 0 0 1px #000;
-  border-radius: 5px;
-  overflow: hidden;
-}
-#divTextWrap {
-  height: 100px;
-}
-#divPropCodeWrap {
-  height: 400px;
-}
-#divText,
-#divTextStyle,
-#divPropCode {
-  position: relative;
-  height: 100%;
-  width: 100%;
-}
-#displayPanel .list-item {
-  padding: 5px;
-  border-radius: 5px;
-  box-shadow: 0 0 5px #000;
-  margin: 5px;
-}
-
-#displayPanel .list-item-wrap {
-  width: 100%;
-}
-
-#displayPanel .image-wrap > div {
-  margin-right: 5px;
-}
-#displayPanel .image-wrap .presenter-aspect-ratio-wrap > .content {
-  box-shadow: 0 0 2px #000;
-  background-color: #000;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-.presenter-aspect-ratio-wrap {
-  position: relative;
-  box-sizing: border-box;
-}
-.presenter-aspect-ratio-wrap > .content,
-.presenter-aspect-ratio-wrap > .middler-wrap {
+.middler-wrap {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  overflow: hidden;
+  z-index: 9999;
 }
-
-#displayPanel .content-wrap {
-  vertical-align: top;
-  width: 99%;
-}
-
-#displayPanel .content-wrap > .title {
-  font-size: 1.25em;
-  font-weight: bold;
-  text-decoration: underline;
-}
-
-.tab-panel-head {
-  margin-top: 1em;
-}
-
-.song-line {
-  margin: 3px 2px;
-  padding: 2px;
-  box-shadow: 0 0 1px #000;
-  border-radius: 2px;
-}
-
-#selProperties {
-  width: 100%;
-}
-#divPropFuncSig *[title] {
-  color: #07F;
-  border-bottom: 1px dotted #6BF;
-  cursor: help;
-}
-
 .middler-table {
   display: table;
   width: 100%;
@@ -125,26 +30,4 @@ html, body {
   display: table-cell;
   text-align: center;
   vertical-align: middle;
-}
-
-progress {
-  font-size: 1.5em;
-  width: 80%;
-  box-shadow: 0 0 0.2em 0.1em #000;
-  border-radius: 0.5em;
-  overflow: hidden;
-  margin: 0.25em;
-}
-progress::-webkit-progress-bar {
-  background: #FFF;
-  padding: 0.05em;
-  box-shadow: inset 0 0 0.2em #07F;
-  border-radius: 0.5em
-}
-progress::-webkit-progress-value {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.5) 25%, rgba(0,0,0,0.5)),
-    repeating-linear-gradient(45deg, #000 0, #000 0.5em, #07F 0.6em, #07F 1.1em, #000 1.2em);
-  border-radius: 0.5em;
-  box-shadow: inset 0 0 0.2em #000;
 }
