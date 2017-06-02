@@ -1,13 +1,13 @@
 const fs = require('fs');
 const path = require('path');
-const remote = require('electron').remote;
+const {dialog} = require('electron').remote;
 
 const APP_BASE_PATH = path.dirname(require.main.filename);
 const APP_SETTINGS_PATH = path.join(APP_BASE_PATH, 'settings.json');
 
 var isPlayingAll = false, isPlaying = false, isToShowSlides = false, videoFiles = [], randomOrder = [], lastIndexInRandom = 0;
 
-var appSettings = {
+var appSettings = window.appSettings = {
   _: (function() {
     var data = { code: '' };
     try {
@@ -708,6 +708,8 @@ function refreshIndex(dirPath, files) {
     index.vids.push(result[0]);
   });
 
+  appSettings.set('orphanVids', appSettings.get('orphanVids', []).concat(vidsNotFoundByName));
+
   files.forEach(JS(JS.set).setArgs({
     1: 'saveIndex',
     2: JS.callReturn(function() {
@@ -912,7 +914,7 @@ $(function() {
   });
 
   $("#linkSetDir").click(function() {
-    remote.dialog.showOpenDialog({
+    dialog.showOpenDialog({
       properties: ['openDirectory']
     }, function(paths) {
       if (paths) {

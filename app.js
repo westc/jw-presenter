@@ -1,7 +1,18 @@
 var path = require('path');
 const {app, BrowserWindow, Menu, shell, powerSaveBlocker, ipcMain} = require('electron');
+const JS = require('./YourJS/JS.js');
 
-var isMeetingAppOpen, isPreachingAppOpen;
+var appWindows = {
+  opener: [],
+  meeting: [],
+  preaching: []
+};
+
+function onWindowClose(nameToClear) {
+  if (!JS(appWindows).set(nameToClear, []).map((a) => a.length).values().sum().$) {
+    app.quit();
+  }
+}
 
 app.on('ready', function() {
   var win = new BrowserWindow({
@@ -19,12 +30,13 @@ app.on('ready', function() {
       Menu.setApplicationMenu(menu);
     });
   });
-  win.name = 'opener';
+  win.on('close', () => onWindowClose('opener'));
+
+  appWindows.opener = [win];
 });
 
 ipcMain.on('start-preaching-app', () => {
-  if (isPreachingAppOpen) { return; }
-  isPreachingAppOpen = true;
+  if (appWindows.preaching.length) { return; }
 
   function setMenu() {
     Menu.setApplicationMenu(Menu.buildFromTemplate([
@@ -84,12 +96,13 @@ ipcMain.on('start-preaching-app', () => {
   mainWindow.on('focus', setMenu);
   mainWindow.once('show', setMenu);
   mainWindow.loadURL('file:///' + __dirname + '/preaching/index.html');
-  mainWindow.on('close', () => { isPreachingAppOpen = false; });
+  mainWindow.on('close', () => onWindowClose('preaching'));
+
+  appWindows.preaching = [mainWindow];
 });
 
 ipcMain.on('start-meeting-app', () => {
-  if (isMeetingAppOpen) { return; }
-  isMeetingAppOpen = true;
+  if (appWindows.meeting.length) { return; }
 
   // Prevents display(s) from sleeping
   var PREVENT_DISPLAY_SLEEP_ID = powerSaveBlocker.start('prevent-display-sleep');
@@ -102,7 +115,7 @@ ipcMain.on('start-meeting-app', () => {
     // Re-enable display auto sleep
     powerSaveBlocker.stop(PREVENT_DISPLAY_SLEEP_ID);
 
-    isMeetingAppOpen = false;
+    onWindowClose('meeting');
   }
 
   function setMenu() {
@@ -203,4 +216,6 @@ ipcMain.on('start-meeting-app', () => {
   winMain.once('show', setMenu);
   winMain.once('close', onQuit);
   winMain.loadURL(`file://${__dirname}/meetings/index.html`);
+
+  appWindows.meeting = [winMain, winPresenter];
 });
