@@ -225,6 +225,16 @@ function onReady() {
   });
 
   winPresenter.on('resize', resizeMedia);
+
+  $('body').on('dblclick', function(e) {
+    e.preventDefault();
+    if (document.webkitIsFullScreen) {
+      document.webkitCancelFullScreen();
+    }
+    else {
+      $('body')[0].webkitRequestFullScreen();
+    }
+  });
 }
 
 $(onReady);

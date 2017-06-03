@@ -1,9 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const {dialog} = require('electron').remote;
+const {dialog, app} = require('electron').remote;
 
 const APP_BASE_PATH = path.dirname(require.main.filename);
+const USER_DATA_PATH = app.getPath('userData');
 const APP_SETTINGS_PATH = path.join(APP_BASE_PATH, 'settings.json');
+const USER_SETTINGS_PATH = path.join(USER_DATA_PATH, 'preaching-settings.json');
 
 var isPlayingAll = false, isPlaying = false, isToShowSlides = false, videoFiles = [], randomOrder = [], lastIndexInRandom = 0;
 
@@ -11,7 +13,12 @@ var appSettings = window.appSettings = {
   _: (function() {
     var data = { code: '' };
     try {
-      data = readFileJSON(APP_SETTINGS_PATH);
+      try {
+        data = readFileJSON(USER_SETTINGS_PATH);
+      }
+      catch (e) {
+        data = readFileJSON(APP_SETTINGS_PATH);
+      }
     }
     catch (e) {
       console.error(e.name + '\n' + e.message + '\n' + e.stack);
@@ -35,7 +42,7 @@ var appSettings = window.appSettings = {
     return JS.has(this._, key) ? this._[key] : opt_defaultValue;
   },
   save: JS.debounce(function() {
-    fs.writeFileSync(APP_SETTINGS_PATH, JSON.stringify(this._), 'utf8');
+    fs.writeFileSync(USER_SETTINGS_PATH, JSON.stringify(this._, 2, 2), 'utf8');
   }, 500)
 };
 

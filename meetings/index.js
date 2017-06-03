@@ -1,14 +1,16 @@
 const fs = require('fs');
 const path = require('path');
-const { dialog, BrowserWindow, ipcMain, shell } = require('electron').remote;
+const { dialog, BrowserWindow, ipcMain, shell, app } = require('electron').remote;
 const mm = require('musicmetadata');
 const markdown = new (require('showdown').Converter);
 
 const { presenter: winPresenter, main: winMain } = JS.indexBy(BrowserWindow.getAllWindows(), 'name');
 
 const APP_BASE_PATH = path.dirname(require.main.filename);
+const USER_DATA_PATH = app.getPath('userData');
+const USER_LYRICS_PATH = path.join(USER_DATA_PATH, 'meetings-lyrics.json');
+const USER_SETTINGS_PATH = path.join(USER_DATA_PATH, 'meetings-settings.json');
 const APP_SETTINGS_PATH = path.join(APP_BASE_PATH, 'settings.json');
-const APP_LYRICS_PATH = path.join(APP_BASE_PATH, 'lyrics.json');
 
 const THUMB_WIDTH = 300;
 
@@ -37,7 +39,12 @@ var appSettings = {
   _: (function() {
     var data = { code: '' };
     try {
-      data = readFileJSON(APP_SETTINGS_PATH);
+      try {
+        data = readFileJSON(USER_SETTINGS_PATH);
+      }
+      catch (e) {
+        data = readFileJSON(APP_SETTINGS_PATH);
+      }
     }
     catch (e) {
       console.error(`${e.name}\n${e.message}\n${e.stack}`);
@@ -66,7 +73,7 @@ var appSettings = {
   },
   save: JS.debounce(function() {
     var me = this;
-    fs.writeFileSync(APP_SETTINGS_PATH, JSON.stringify(me._, 2, 2), 'utf8');
+    fs.writeFileSync(USER_SETTINGS_PATH, JSON.stringify(me._, 2, 2), 'utf8');
     me._onSavers.splice(0).forEach((onSave) => onSave(me._));
   }, 500)
 };
@@ -467,7 +474,7 @@ function playSongAt(i, opt_lyricsIndex) {
   var lyricsData, song = songs[lastSongIndex = i];
   if (opt_lyricsIndex != undefined) {
     try {
-      if (lyricsData = readFileJSON(APP_LYRICS_PATH)[opt_lyricsIndex]) {
+      if (lyricsData = readFileJSON(USER_LYRICS_PATH)[opt_lyricsIndex]) {
         ipcMain.emit('present-media', 'lyrics', lyricsData, 3, song.duration, 12, 2);
       }
     }
@@ -501,7 +508,7 @@ function showSongsList() {
       }
       return false;
     }
-    readFileJSON(APP_LYRICS_PATH).map(function(lyrics, lyricsIndex) {
+    readFileJSON(USER_LYRICS_PATH).map(function(lyrics, lyricsIndex) {
       if (!testSongMatchAt(lyricsIndex, lyricsIndex)) {
         for (var songIndex = 0, l = songs.length; songIndex < l; songIndex++) {
           if (lyricsIndex != songIndex && testSongMatchAt(songIndex, lyricsIndex)) {
@@ -830,7 +837,7 @@ function updateLibLangsCombobox() {
 function updateLyricsImportTable() {
   var jTBody = $('#tblLyricsImport > tbody').html('');
   try {
-    jTBody.append(readFileJSON(APP_LYRICS_PATH).map(({heading, title, theme, stanzas}) => JS.dom({
+    jTBody.append(readFileJSON(USER_LYRICS_PATH).map(({heading, title, theme, stanzas}) => JS.dom({
       _: 'tr',
       $: [
         { _: 'td', text: heading },
@@ -885,7 +892,7 @@ $(function() {
   });
 
   $('#formLyricsLang').on('submit', function(e) {
-    try { fs.unlinkSync(APP_LYRICS_PATH); } catch(e){}
+    try { fs.unlinkSync(USER_LYRICS_PATH); } catch(e){}
     updateLyricsImportTable();
 
     var jOpt = $(`#selLibLangs > option[value=${$('#selLibLangs').val()}]`);
@@ -921,7 +928,7 @@ $(function() {
         }
         else {
           // Done
-          fs.writeFileSync(APP_LYRICS_PATH, JSON.stringify(songs), 'utf8');
+          fs.writeFileSync(USER_LYRICS_PATH, JSON.stringify(songs), 'utf8');
           updateLyricsImportTable();
           loader.close();
         }
@@ -1100,7 +1107,7 @@ function selectProperty(property, index) {
 
   $('#txtPropName').val(property.name).data('index', index);
 
-  $('#divPropFuncSig, #divPropCodeWrap, #divPropInputWrap').hide();
+  $('#divPropFuncSig, #divPropCodeWrap, #divPropInputWrap, #divPropList').hide();
 
   if (property.type == 'function') {
     $('#divPropFuncSig, #divPropCodeWrap').show();
@@ -1156,8 +1163,30 @@ function selectProperty(property, index) {
     $('#divPropInputWrap').show();
     $('#txtPropInput').prop('type', property.type).val(property.value).focus();
   }
-  else if (property.type == 'properties-table') {
-
+  else if (property.type == 'properties-list') {
+    $('#divPropList')
+      .append(property.value.map(({label, value}, i, a) => JS.dom({
+        _: 'div',
+        cls: `input-group ${i+1<a.length?'line-margin-after':''}`,
+        $: [
+          {
+            _: 'label',
+            cls: 'input-group-addon',
+            text: label,
+            for: `labelProp${i}`
+          },
+          {
+            _: 'input',
+            id: `labelProp${i}`,
+            type: 'text',
+            cls: `form-control`,
+            placeholder: value,
+            value: value,
+            oninput: JS.debounce(() => updatePropCode(true), 250)
+          }
+        ]
+      })))
+      .show();
   }
   else {
     throw new Error(`Property type "${property.type}" is not handled.`);
@@ -1181,8 +1210,17 @@ function hasCodeChanged() {
   else if (['text', 'url'].includes(property.type)) {
     return property.value != $('#txtPropInput').val();
   }
-  else if (property.type == 'properties-table') {
-    
+  else if (property.type == 'properties-list') {
+    for (var jInputs = $('#divPropList :text'), props = property.value, i = props.length; i--;) {
+      if (props[i].value != jInputs.eq(i).val()) {
+        console.log(props[i].value, jInputs.eq(i).val(), props[i]);
+        return true;
+      }
+    }
+    return false;
+    property.value.forEach(function(prop, i) {
+      prop.value = jInputs.eq(i).val();
+    });
   }
   else {
     throw new Error(`Property type "${property.type}" is not handled.`);
@@ -1219,8 +1257,11 @@ function updatePropCode(isUserInitiated) {
     else if (['text', 'url'].includes(property.type)) {
       property.value = $('#txtPropInput').val();
     }
-    else if (property.type == 'properties-table') {
-      
+    else if (property.type == 'properties-list') {
+      var jInputs = $('#divPropList :text');
+      property.value.forEach(function(prop, i) {
+        prop.value = jInputs.eq(i).val();
+      });
     }
     else {
       throw new Error(`Property type "${property.type}" is not handled.`);
