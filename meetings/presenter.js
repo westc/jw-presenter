@@ -23,7 +23,9 @@ const MEDIA_PRESENTERS = {
         src: cleanPath,
         onended() {
           ipcMain.emit('ended-presenter-video');
-        }
+          showDefaultText();
+        },
+        currentTime: details.time
       }));
     resizeMedia();
     media.play();
@@ -224,7 +226,10 @@ function onReady() {
     }
   });
 
-  winPresenter.on('resize', resizeMedia);
+  winPresenter.on('resize', () => {
+    winPresenter.setMenuBarVisibility(!winPresenter.isFullScreen());
+    resizeMedia();
+  });
 
   $('body').on('dblclick', function(e) {
     e.preventDefault();

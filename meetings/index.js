@@ -181,6 +181,12 @@ function formatTime(secs) {
     .replace(/^0:0/, '');
 }
 
+function parseTime(str) {
+  return str.split(':').reverse().reduce(function(total, value, index) {
+    return total + Math.pow(60, index) * parseInt(value, 10);
+  }, 0);
+}
+
 function maximizeFontSize(elem, opt_dontApplyFontSize) {
   var canBeBigger, isNotTooMany,
       iters = 0,
@@ -508,15 +514,17 @@ function showSongsList() {
       }
       return false;
     }
-    readFileJSON(USER_LYRICS_PATH).map(function(lyrics, lyricsIndex) {
-      if (!testSongMatchAt(lyricsIndex, lyricsIndex)) {
-        for (var songIndex = 0, l = songs.length; songIndex < l; songIndex++) {
-          if (lyricsIndex != songIndex && testSongMatchAt(songIndex, lyricsIndex)) {
-            break;
+    if (isFileSync(USER_LYRICS_PATH)) {
+      readFileJSON(USER_LYRICS_PATH).map(function(lyrics, lyricsIndex) {
+        if (!testSongMatchAt(lyricsIndex, lyricsIndex)) {
+          for (var songIndex = 0, l = songs.length; songIndex < l; songIndex++) {
+            if (lyricsIndex != songIndex && testSongMatchAt(songIndex, lyricsIndex)) {
+              break;
+            }
           }
         }
-      }
-    });
+      });
+    }
   }
   catch(e) {
     console.error(e);
@@ -666,7 +674,7 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
           }));
       }
 
-      jContentWrap.append(JS.dom({
+      var objButton = {
         _: 'button',
         cls: `btn btn-default show-${isImage?'image':'video'}`,
         text: isImage ? getTranslationFor('show-image-button') : getTranslationFor('play-video-button'),
@@ -678,11 +686,92 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
           else {
             unpressActiveMediaButtons();
             audio.pause();
-            ipcMain.emit('present-media', isImage ? 'image' : 'video', getCleanPath(filePath), { width, height });
+            var details = { width, height};
+            if (!isImage) {
+              details.time = parseTime(jContentWrap.find(':text.time').val());
+            }
+            ipcMain.emit('present-media', isImage ? 'image' : 'video', getCleanPath(filePath), details);
           }
           jThis.toggleClass('active');
         }
-      }));
+      };
+
+      if (isImage) {
+        jContentWrap.append(JS.dom(objButton));
+      }
+      else {
+        jContentWrap.append(JS.dom({
+          _: 'div',
+          $: [
+            {
+              _: 'div',
+              style: { display: 'inline-block', verticalAlign: 'top', paddingRight: '1em' },
+              $: objButton
+            },
+            {
+              _: 'div',
+              style: { display: 'inline-block', verticalAlign: 'top' },
+              $: {
+                _: 'div',
+                cls: 'input-group',
+                style: { width: '1px' },
+                $: [
+                  {
+                    _: 'span',
+                    cls: 'input-group-btn',
+                    $: {
+                      _: 'button',
+                      title: 'Click to take off a second.  Hold down ALT and click to take off 10 seconds.',
+                      cls: 'btn btn-default btn-danger',
+                      $: {
+                        _: 'span',
+                        cls: 'glyphicon glyphicon-minus',
+                        'aria-hidden': true
+                      },
+                      onmousedown: (e) => offsetTime(e.altKey ? -10 : -1)
+                    }
+                  },
+                  {
+                    _: 'input',
+                    type: 'text',
+                    cls: 'form-control time',
+                    placeholder: '0:00',
+                    style: { width: '6em', textAlign: 'center' },
+                    value: '0:00',
+                    onchange: () => offsetTime(0)
+                  },
+                  {
+                    _: 'span',
+                    cls: 'input-group-btn',
+                    $: {
+                      _: 'button',
+                      title: 'Click to add a second.  Hold down ALT and click to add 10 seconds.',
+                      cls: 'btn btn-default btn-success',
+                      $: {
+                        _: 'span',
+                        cls: 'glyphicon glyphicon-plus',
+                        'aria-hidden': true
+                      },
+                      onmousedown: (e) => offsetTime(e.altKey ? 10 : 1)
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }));
+
+        jContentWrap.find('.btn-show-media').remove().prependTo(jContentWrap.find('.controls'));
+
+        var time,
+            updatePreview = JS.debounce(() => getVideoImage(filePath, time, (img) => jImageWrap.find('img').prop('src', img.src)), 250);
+
+        function offsetTime(offset) {
+          var jTxt = jContentWrap.find(':text.time');
+          jTxt.filter(':not(:disabled)').val(formatTime(time = JS.clamp((parseTime(jTxt.val()) || 0) + offset, 0, ~~data.realDuration)));
+          updatePreview();
+        }
+      }
     }
   });
 
