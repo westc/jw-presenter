@@ -27,6 +27,9 @@ const AceModeMarkdown = ace.require('ace/mode/markdown').Mode,
       AceModeCSS = ace.require('ace/mode/css').Mode,
       AceModeJavaScript = ace.require('ace/mode/javascript').Mode;
 
+const isDirectorySync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isDirectory(),
+      isFileSync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isFile();
+
 var textEditor, propCodeEditor;
 
 var translations,
@@ -277,9 +280,6 @@ function recurseDirSync(currentDirPath, depthLeft, opt_filter) {
   });
   return result;
 }
-
-var isDirectorySync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isDirectory(),
-    isFileSync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isFile();
 
 function loadSettings() {
   var properties = appSettings.get('properties', []).sort(({ name: name1 }, { name: name2 }) => JS.compare(name1, name2));

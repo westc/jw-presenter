@@ -37,7 +37,7 @@ function focusOrOpen(id, fnIfNotOpen) {
 
 app.on('ready', function() {
   var win = new BrowserWindow({
-    icon: path.join(__dirname, 'assets/icons/256×256.png'),
+    icon: path.join(__dirname, 'assets/icons/256.png'),
     frame: false,
     transparent: true,
     shadow: false,
@@ -60,12 +60,6 @@ ipcMain.on('start-preaching-app', () => {
   focusOrOpen('preaching', function() {
     function setMenu() {
       Menu.setApplicationMenu(Menu.buildFromTemplate([
-        {
-          label: "JW Presenter",
-          submenu: [
-            { label: 'Quit', accelerator: 'CmdOrCtrl+Q', click: function() { app.quit(); } }
-          ]
-        },
         {
           label: "Edit",
           submenu: [
@@ -110,7 +104,7 @@ ipcMain.on('start-preaching-app', () => {
 
     var mainWindow = new BrowserWindow({
       // https://codepen.io/cwestify/pen/eWVNwx
-      icon: path.join(__dirname, 'assets/icons/256×256.png')
+      icon: path.join(__dirname, 'assets/icons/256.png')
     });
     mainWindow.maximize();
     mainWindow.on('focus', setMenu);
@@ -217,7 +211,7 @@ ipcMain.on('start-meetings-app', () => {
     // Load the presenter first so that any settings will propagate into it afterwards (eg. presenter-css)
     var winPresenter = new BrowserWindow({
       // https://codepen.io/cwestify/pen/rmdZBN
-      icon: path.join(__dirname, 'assets/icons/256×256.png'),
+      icon: path.join(__dirname, 'assets/icons/256.png'),
       frame: true,
       transparent: false,
       shadow: true
@@ -230,7 +224,7 @@ ipcMain.on('start-meetings-app', () => {
 
     var winMain = new BrowserWindow({
       // https://codepen.io/cwestify/pen/rmdZBN
-      icon: path.join(__dirname, 'assets/icons/256×256.png')
+      icon: path.join(__dirname, 'assets/icons/256.png')
     });
     winMain.name = 'main';
     winMain.on('focus', setMenu);
