@@ -57,35 +57,43 @@ var sleepMouse = JS.debounce(function() {
   }
 }, 1000);
 
-function scoreTextSearch(searchTerm, arrRecords) {
-  // Make sure that each record is an array of texts to be searched.
-  var arrayOfArrays = arrRecords.slice().map(function(record) {
-    return JS.toArray(record).slice().map(function(text) {
-      return JS.deburr(text);
-    });
-  });
-
+function scoreSearch(searchTerm, arrRecords) {
   // Zero out the scores to start off.
-  var scores = JS(arrayOfArrays).slice().fill(0).$;
+  var scores = JS(arrRecords).slice().fill(0).$;
 
   // Loop through all search terms modifying the scores appropriately.
   var trash = JS.deburr(searchTerm).replace(
-    /(?:(\+)|(-))?(?:"(.+?)"|\/((?:[^\\\/]|\\.)+)\/(i)?|([^\s,.:;"\[\]\{\}\!\?\xA1\xBF]+))/g,
-    function(keyword, mustHave, hide, quoted, regExpBody, regExpI, normal) {
-      var rgx = new RegExp(
-        regExpBody || JS.quoteRegExp(quoted || normal).replace(/\\\*/g, "\\S*").replace(/^|$/g, '\\b').replace(/\s+/, '\\b\\s+\\b'),
-        regExpBody ? regExpI : 'i'
-      );
-      arrayOfArrays.forEach(function(arrayOfTexts, i) {
+    /(?:(\+)|(-))?(?:"(.+?)"|\/((?:[^\\\/]|\\.)+)\/(i)?|([^\s,.:;"<>@\[\]\{\}\!\?\xA1\xBF]+)|(@\w+)|([<>]=?)(\d+))/g,
+    function(keyword, mustHave, hide, quoted, regExpBody, regExpI, normal, meta, minsSign, mins) {
+      if (minsSign) {
+        mins = parseInt(mins, 10);
+      }
+      else if (!meta) {
+        var rgx = new RegExp(
+          regExpBody || JS.quoteRegExp(quoted || normal).replace(/\\\*/g, "\\S*").replace(/^|$/g, '\\b').replace(/\s+/, '\\b\\s+\\b'),
+          regExpBody ? regExpI : 'i'
+        );
+      }
+      arrRecords.forEach(function(record, i) {
+        var {text, duration} = record;
         if (scores[i] > -Infinity) {
-          JS.walk(arrayOfTexts, function(text) {
-            if (rgx.test(text) ? hide : mustHave) {
-              this(scores[i] = -Infinity);
-            }
-            else if (rgx.test(text) == !hide) {
-              scores[i]++;
-            }
-          });
+          var isMatch = minsSign
+            ? minsSign == '<'
+              ? duration < mins
+              : minsSign == '<='
+                ? duration <= mins
+                : minsSign == '>'
+                  ? duration > mins
+                  : duration >= mins
+            : meta
+              ? record[meta]
+              : rgx.test(JS.deburr(text));
+          if (isMatch ? hide : mustHave) {
+            scores[i] = -Infinity;
+          }
+          else if (isMatch === !hide) {
+            scores[i]++;
+          }
         }
       });
     }
@@ -893,11 +901,16 @@ function incrementVideoCount() {
 
 function filterVideos() {
   var searchTerm = this.value;
-  var videoTexts = videoFiles.map(function(file) {
-    return (file.vid.title + ' ' +  file.vid.keywords.join(',')).replace(/\b@(\w+)\b/g, '$1') + (file.vid.slides.length ? ' _slides' : '') + (file.vid.keywords.length ? ' _keywords' : '');
+  var arrVideoData = videoFiles.map(function(file) {
+    return {
+      text: file.vid.title + ' ' +  file.vid.keywords.join(','),
+      '@slides': file.vid.slides.length > 0,
+      '@keywords': file.vid.keywords.length > 0,
+      duration: ~~(file.vid.duration / 60)
+    };
   });
   var elems = $('.video-div-wrap');
-  scoreTextSearch(searchTerm.replace(/@/g, '_'), videoTexts).forEach(function(score, i) {
+  scoreSearch(searchTerm, arrVideoData).forEach(function(score, i) {
     $(elems[i])[score > 0 ? 'removeClass' : 'addClass']('hidden');
   });
   appSettings.set('searchTerm', searchTerm);

@@ -573,14 +573,18 @@ function setDisplayDir(dirPath) {
           var jListItem = $('<div class="list-item">').appendTo('#collapseVideos > .panel-body');
           mm(fs.createReadStream(filePath), function (err, metadata) {
             if (err) {
-              jListItem.remove();
+              metadata = { title: path.basename(filePath) };
             }
-            else {
-              getVideoImage(filePath, (t) => t / 3, (img, t, event) => {
+            
+            getVideoImage(filePath, (t) => t / 3, (img, t, event) => {
+              if (event.type == 'error') {
+                jListItem.remove();
+              }
+              else {
                 metadata.realDuration = t * 3;
                 setDisplayListItem(jListItem, filePath, metadata, img);
-              });
-            }
+              }
+            });
           });
         }
         else {
