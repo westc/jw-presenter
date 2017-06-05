@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>BigIt!</title>
+
+    <!-- Bootstrap -->
+    <link href="../bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../bootstrap-3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <link href="index.css" rel="stylesheet">
+
+    <!-- YourJS (JS) and jQuery (used by Bootstrap and just in general) -->
+    <script type="text/JavaScript">
+    // Load YourJS (JS)
+    var JS = require('./../YourJS/JS.js');
+
+    // Load jQuery (jQuery)
+    var jQuery = require('./../jquery-2.2.1.min.js'), $ = jQuery;
+
+    // Load ACE (ace)
+    ['ace', 'mode-markdown'].forEach((v) => require(`./../ace/src/${v}`));
+    ace.config.set('basePath', 'ace/src');
+
+    // Load the index and loader scripts
+    require('./index');
+    </script>
+  </head>
+  <body>
+    <div id="divText"></div>
+
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="../bootstrap-3.3.7/js/bootstrap.min.js"></script>
+  </body>
+</html>

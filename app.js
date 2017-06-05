@@ -10,7 +10,8 @@ var isFileSync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.
 var appWindows = {
   opener: [],
   meetings: [],
-  preaching: []
+  preaching: [],
+  'big-it': []
 };
 
 function onWindowClose(nameToClear) {
@@ -27,15 +28,27 @@ function focusOrOpen(id, fnIfNotOpen) {
 
   // If the apps settings.json file doesn't exist, copy the default from the
   // app's directory.
+  var defaultAppSettingsPath = path.join(__dirname, id, 'settings.json');
   var appSettingsPath = path.join(USER_DATA_PATH, `${id}-settings.json`);
-  if (!isFileSync(appSettingsPath)) {
-    fs.writeFileSync(appSettingsPath, fs.readFileSync(path.join(__dirname, id, 'settings.json'), 'utf8'), 'utf8');
+  if (isFileSync(defaultAppSettingsPath) && !isFileSync(appSettingsPath)) {
+    fs.writeFileSync(appSettingsPath, fs.readFileSync(defaultAppSettingsPath, 'utf8'), 'utf8');
   }
 
   appWindows[id] = fnIfNotOpen();
 }
 
 app.on('ready', function() {
+  function setMenu() {
+    Menu.setApplicationMenu(Menu.buildFromTemplate([
+      {
+        label: 'Big It!',
+        submenu: [
+          { label: 'Close', accelerator: 'CmdOrCtrl+W', click: () => BrowserWindow.getFocusedWindow().close() }
+        ]
+      }
+    ]));
+  }
+
   var win = new BrowserWindow({
     icon: path.join(__dirname, 'assets/icons/256.png'),
     frame: false,
@@ -45,15 +58,72 @@ app.on('ready', function() {
     width: 512
   });
   win.loadURL(`file://${__dirname}/index.html`);
-  win.once('focus', function() {
-    var menu = Menu.getApplicationMenu();
-    win.on('focus', function() {
-      Menu.setApplicationMenu(menu);
-    });
-  });
+    win.on('focus', setMenu);
+    win.once('show', setMenu);
   win.on('close', () => onWindowClose('opener'));
 
   appWindows.opener = [win];
+});
+
+ipcMain.on('start-big-it-app', () => {
+  focusOrOpen('big-it', () => {
+    function setMenu() {
+      Menu.setApplicationMenu(Menu.buildFromTemplate([
+        {
+          label: "Edit",
+          submenu: [
+            { label: 'Undo', accelerator: 'CmdOrCtrl+Z', role: 'undo' },
+            { label: 'Redo', accelerator: 'CmdOrCtrl+Shift+Z', role: 'redo' },
+            { type: 'separator' },
+            { label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut' },
+            { label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy' },
+            { label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste' },
+            { label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectall' }
+          ]
+        },
+        {
+          label: "View",
+          submenu: [
+            {
+              label: 'Reload',
+              accelerator: 'CmdOrCtrl+R',
+              click() { win.reload(); }
+            },
+            { type: 'separator' },
+            {
+              label: 'Toggle Dev Tools',
+              accelerator: 'CmdOrCtrl+Alt+I',
+              click() {
+                var focusedWindow = BrowserWindow.getFocusedWindow();
+                focusedWindow && focusedWindow.webContents.toggleDevTools();
+              }
+            },
+            { type: 'separator' },
+            {
+              label: 'Toggle Fullscreen',
+              role: 'togglefullscreen',
+              click: function() {
+                win.setFullScreen(!win.isFullScreen());
+              }
+            }
+          ]
+        }
+      ]));
+    }
+
+    var win = new BrowserWindow({
+      // https://codepen.io/cwestify/pen/eWVNwx
+      icon: path.join(__dirname, 'assets/icons/256.png')
+    });
+    win.maximize();
+    win.on('focus', setMenu);
+    win.once('show', setMenu);
+    win.loadURL('file:///' + __dirname + '/big-it/index.html');
+    win.on('close', () => onWindowClose('big-it'));
+    win.name = 'big-it';
+
+    return [win];
+  });
 });
 
 ipcMain.on('start-preaching-app', () => {
@@ -78,7 +148,7 @@ ipcMain.on('start-preaching-app', () => {
             {
               label: 'Reload',
               accelerator: 'CmdOrCtrl+R',
-              click() { mainWindow.reload(); }
+              click() { win.reload(); }
             },
             { type: 'separator' },
             {
@@ -94,7 +164,7 @@ ipcMain.on('start-preaching-app', () => {
               label: 'Toggle Fullscreen',
               role: 'togglefullscreen',
               click: function() {
-                mainWindow.setFullScreen(!mainWindow.isFullScreen());
+                win.setFullScreen(!win.isFullScreen());
               }
             }
           ]
@@ -102,18 +172,17 @@ ipcMain.on('start-preaching-app', () => {
       ]));
     }
 
-    var mainWindow = new BrowserWindow({
+    var win = new BrowserWindow({
       // https://codepen.io/cwestify/pen/eWVNwx
       icon: path.join(__dirname, 'assets/icons/256.png')
     });
-    mainWindow.maximize();
-    mainWindow.on('focus', setMenu);
-    mainWindow.once('show', setMenu);
-    mainWindow.loadURL('file:///' + __dirname + '/preaching/index.html');
-    mainWindow.on('close', () => onWindowClose('preaching'));
-    mainWindow.name = 'preaching3';
+    win.maximize();
+    win.on('focus', setMenu);
+    win.once('show', setMenu);
+    win.loadURL('file:///' + __dirname + '/preaching/index.html');
+    win.on('close', () => onWindowClose('preaching'));
 
-    return [mainWindow];
+    return [win];
   });
 });
 
