@@ -107,7 +107,7 @@ const SECRET_FUNCTIONS = [
 const RGX_SECRET_FUNCTIONS = new RegExp(`/(?:${SECRET_FUNCTIONS.map(({rgx})=>`(${rgx})`).join('|')})$`, 'i');
 
 function copyTextFileSync(filePathSource, filePathTarget) {
-  return fs.writeFileSync(filePath2, fs.readFileSync(filePathSource, 'utf8'), 'utf8');
+  return fs.writeFileSync(filePathTarget, fs.readFileSync(filePathSource, 'utf8'), 'utf8');
 }
 
 $(function() {
