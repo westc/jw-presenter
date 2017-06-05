@@ -58,8 +58,8 @@ app.on('ready', function() {
     width: 512
   });
   win.loadURL(`file://${__dirname}/index.html`);
-    win.on('focus', setMenu);
-    win.once('show', setMenu);
+  win.on('focus', setMenu);
+  win.once('show', setMenu);
   win.on('close', () => onWindowClose('opener'));
 
   appWindows.opener = [win];
