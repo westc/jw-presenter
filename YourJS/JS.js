@@ -633,9 +633,9 @@
     }
   }
 
-  // Getters & Setters - http://yourjs.com/snippets/14
+  // get() & set() - http://yourjs.com/snippets/14
   function get(obj, propName, opt_defaultValue) {
-    return has(obj, propName) ? obj[propName] : opt_defaultValue;
+    return has(Object(obj), propName) ? obj[propName] : opt_defaultValue;
   }
   
   function set(obj, propName, value) {

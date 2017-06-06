@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const { dialog, BrowserWindow, ipcMain, shell, app } = require('electron').remote;
+const electron = require('electron');
+const { ipcRenderer, remote } = electron;
+const { dialog, BrowserWindow, shell, app } = remote;
 const mm = require('musicmetadata');
 const markdown = new (require('showdown').Converter);
 
@@ -81,11 +83,12 @@ var appSettings = {
   }, 500)
 };
 
-ipcMain.on('ended-presenter-video', function() {
+ipcRenderer.on('ended-presenter-video', (event) => {
   $('.btn.show-video').removeClass('active');
 });
 
-ipcMain.on('update-presenter-css', function(code) {
+function updatePresenterCSS(code) {
+  winPresenter.webContents.send('update-presenter-css', code);
   var style = $('#presenterStyle')[0];
   if (style.styleSheet && !style.sheet) {
     style.styleSheet.cssText = code;
@@ -94,7 +97,7 @@ ipcMain.on('update-presenter-css', function(code) {
     style.innerHTML = '';
     style.appendChild(document.createTextNode(code));
   }
-});
+}
 
 function adjustTextPreviewZoom() {
   var jBody = $('#divTextPreview .presenter-aspect-ratio-wrap.body');
@@ -299,7 +302,7 @@ function loadSettings() {
     }));
 
     if (prop.id == 'presenter-css') {
-      ipcMain.emit('update-presenter-css', prop.value);
+      updatePresenterCSS(prop.value);
     }
 
     if (!i) {
@@ -481,7 +484,7 @@ function playSongAt(i, opt_lyricsIndex) {
   if (opt_lyricsIndex != undefined) {
     try {
       if (lyricsData = readFileJSON(USER_LYRICS_PATH)[opt_lyricsIndex]) {
-        ipcMain.emit('present-media', 'lyrics', lyricsData, 3, song.duration, 12, 2);
+        winPresenter.webContents.send('present-media', 'lyrics', lyricsData, 3, song.duration, 12, 2);
       }
     }
     catch(e) {
@@ -545,7 +548,7 @@ function showSongsList() {
           onclick: function() {
             if ($(this).hasClass('active')) {
               audio.pause();
-              ipcMain.emit('unpresent-media');
+              winPresenter.webContents.send('unpresent-media');
             }
             else {
               unpressActiveMediaButtons();
@@ -685,7 +688,7 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
         onclick: function() {
           var jThis = $(this);
           if (jThis.hasClass('active')) {
-            ipcMain.emit('unpresent-media');
+            winPresenter.webContents.send('unpresent-media');
           }
           else {
             unpressActiveMediaButtons();
@@ -694,7 +697,7 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
             if (!isImage) {
               details.time = parseTime(jContentWrap.find(':text.time').val());
             }
-            ipcMain.emit('present-media', isImage ? 'image' : 'video', getCleanPath(filePath), details);
+            winPresenter.webContents.send('present-media', isImage ? 'image' : 'video', getCleanPath(filePath), details);
           }
           jThis.toggleClass('active');
         }
@@ -815,12 +818,12 @@ function setDisplayTextListItem(jListItem, text, textIndex) {
       onclick: function() {
         var jThis = $(this);
         if (jThis.hasClass('active')) {
-          ipcMain.emit('unpresent-media');
+          winPresenter.webContents.send('unpresent-media');
         }
         else {
           unpressActiveMediaButtons();
           audio.pause();
-          ipcMain.emit('present-media', 'text', text.text);
+          winPresenter.webContents.send('present-media', 'text', text.text);
         }
         jThis.toggleClass('active');
       }
@@ -832,10 +835,10 @@ function setDisplayTextListItem(jListItem, text, textIndex) {
       onclick: function() {
         var jThis = $(this);
         if (jThis.hasClass('active')) {
-          appSettings.set('defaultTextIndex', undefined, () => ipcMain.emit('update-default-text'));
+          appSettings.set('defaultTextIndex', undefined, () => winPresenter.webContents.send('update-default-text', undefined));
         }
         else {
-          appSettings.set('defaultTextIndex', textIndex, () => ipcMain.emit('update-default-text'));
+          appSettings.set('defaultTextIndex', textIndex, () => winPresenter.webContents.send('update-default-text', text));
           $('.btn.default-text').removeClass('active');
         }
         jThis.toggleClass('active');
@@ -1058,7 +1061,7 @@ $(function() {
     // Done this way cuz of unpressActiveMediaButtons()
     if (!wasPressed) {
       $(this).addClass('active');
-      ipcMain.emit('unpresent-media');
+      winPresenter.webContents.send('unpresent-media');
     }
     onMusicEnd();
   });
@@ -1344,7 +1347,7 @@ function updatePropCode(isUserInitiated) {
     if (['function', 'css'].includes(property.type)) {
       property.value = propCodeEditor.getValue();
       if (property.id == 'presenter-css') {
-        ipcMain.emit('update-presenter-css', property.value);
+        updatePresenterCSS(property.value);
       }
     }
     else if (['text', 'url'].includes(property.type)) {

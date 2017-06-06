@@ -89,7 +89,7 @@ const SECRET_FUNCTIONS = [
     name: 'Copy Meeting Translations To Clipboard',
     exec() {
       try {
-        var filePath = path.join(USER_DATA_PATH, 'meetings-settings.json');
+        var filePath = path.join(USER_DATA_PATH, 'meetings-lyrics.json');
         var settings = JSON.parse(fs.readFileSync(filePath, 'utf8'));
         var translations = JS.indexBy(settings.properties, 'id').translations.value.reduce((carry, {id, value}) => JS(carry).set(id, value).$, {});
         clipboard.writeText(JSON.stringify(translations, 2, 2));
@@ -143,8 +143,6 @@ $(function() {
           if (J.hasClass('entering-command')) {
             str += key;
           }
-
-
 
           str.replace(
             RGX_SECRET_FUNCTIONS,

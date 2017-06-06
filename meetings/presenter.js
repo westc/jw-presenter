@@ -2,12 +2,11 @@ const fs = require('fs');
 const isFileSync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isFile();
 
 const path = require('path');
-const { BrowserWindow, ipcMain } = require('electron').remote;
+const electron = require('electron');
+const { ipcRenderer, remote } = electron;
+const { BrowserWindow } = remote;
 const { presenter: winPresenter, main: winMain } = JS.indexBy(BrowserWindow.getAllWindows(), 'name');
 const markdown = new (require('showdown').Converter);
-
-const APP_BASE_PATH = path.dirname(require.main.filename);
-const APP_SETTINGS_PATH = path.join(APP_BASE_PATH, 'settings.json');
 
 const MEDIA_PRESENTERS = {
   image: function(cleanPath, details) {
@@ -22,7 +21,7 @@ const MEDIA_PRESENTERS = {
         _: 'video',
         src: cleanPath,
         onended() {
-          ipcMain.emit('ended-presenter-video');
+          winMain.webContents.send('ended-presenter-video');
           showDefaultText();
         },
         currentTime: details.time
@@ -38,23 +37,13 @@ const MEDIA_PRESENTERS = {
   }
 };
 
-var media, mediaWidth, mediaHeight, defaultText, lyricsControl;
+var media, mediaWidth, mediaHeight, objDefaultText, lyricsControl;
 
 function showDefaultText() {
   reset();
   
-  var defaultText = getDefaultText();
-  if (defaultText) {
-    $('body, .body').addClass('showing-default-text showing-text');
-  }
-  $('.middler-content:eq(0)').html(markdown.makeHtml(defaultText.text || ''));
-}
-
-function getDefaultText() {
-  try {
-    var settings = readFileJSON(APP_SETTINGS_PATH);
-    return settings.texts[settings.defaultTextIndex];
-  } catch(e){}
+  $('body, .body').addClass('showing-default-text showing-text');
+  $('.middler-content:eq(0)').html(markdown.makeHtml(JS.get(objDefaultText, 'text', '')));
 }
 
 function readFileJSON(filePath) {
@@ -183,39 +172,29 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
 }
 
 function onReady() {
-  ipcMain.on('present-media', function(mediaType) {
+  ipcRenderer.on('present-media', function(event, mediaType) {
     reset();
 
     var caller = MEDIA_PRESENTERS[mediaType];
     if (caller) {
       $('body, .body').addClass(`showing-media showing-${mediaType}`);
-      caller.apply(this, JS.slice(arguments, 1));
-      ipcMain.emit('media-presented');
+      caller.apply(this, JS.slice(arguments, 2));
     }
     else {
       console.error(`Unsupported media type: ${mediaType}`);
     }
   });
 
-  ipcMain.on('update-default-text', function() {
+  ipcRenderer.on('update-default-text', (event, objNewDefaultText) => {
+    objDefaultText = objNewDefaultText;
     if ($('body').is(':not(.showing-media)')) {
       showDefaultText();
     }
   });
 
-  ipcMain.on('unpresent-media', function() {
-    showDefaultText();
-  })
+  ipcRenderer.on('unpresent-media', showDefaultText);
 
-  ipcMain.on('set-default-text', function(strText) {
-    reset();
-    defaultText = strText;
-    if (!$('body').is('.showing-media')) {
-      $('.middler-content:eq(0)').html(markdown.makeHtml(defaultText));
-    }
-  });
-
-  ipcMain.on('update-presenter-css', function(code) {
+  ipcRenderer.on('update-presenter-css', (event, code) => {
     var style = $('#presenterStyle')[0];
     if (style.styleSheet && !style.sheet) {
       style.styleSheet.cssText = code;
