@@ -212,12 +212,11 @@ function onReady() {
 
   $('body').on('dblclick', function(e) {
     e.preventDefault();
-    if (document.webkitIsFullScreen) {
-      document.webkitCancelFullScreen();
-    }
-    else {
-      $('body')[0].webkitRequestFullScreen();
-    }
+    // Toggle fullscreen mode on the browser window.
+    winPresenter.setFullScreen(!winPresenter.isFullScreen());
+    // Make sure to deselect everything cuz often times double-clicking causes
+    // a range to be selected
+    document.getSelection().removeAllRanges();
   });
 }
 

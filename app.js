@@ -1,9 +1,12 @@
-var path = require('path');
-var fs = require('fs');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const {app, BrowserWindow, Menu, shell, powerSaveBlocker, ipcMain} = require('electron');
 const JS = require('./YourJS/JS.js');
 
 const USER_DATA_PATH = app.getPath('userData');
+
+const IS_MAC = /^darwin/.test(os.platform());
 
 var isFileSync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isFile();
 
@@ -51,11 +54,13 @@ app.on('ready', function() {
 
   var win = new BrowserWindow({
     icon: path.join(__dirname, 'assets/icons/256.png'),
-    frame: false,
-    transparent: true,
-    shadow: false,
+    frame: !IS_MAC,
+    transparent: IS_MAC,
+    shadow: !IS_MAC,
     height: 512,
-    width: 512
+    width: 512,
+    useContentSize: true,
+    center: true
   });
   win.loadURL(`file://${__dirname}/index.html`);
   win.on('focus', setMenu);
