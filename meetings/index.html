@@ -48,6 +48,7 @@
               </ul>
               <div id="musicPanelHead" class="tab-panel-head line-margin-after" role="tabpanelhead">
                 <button id="btnBGMusic" type="button" class="btn btn-default">Background Music</button>
+                <span id="bgMusicDetails"></span>
               </div>
             </td>
           </tr>
@@ -142,7 +143,7 @@
                               </span>
                             </div>
 
-                            <div class="input-group">
+                            <div class="input-group line-margin-after">
                               <span class="input-group-btn">
                                 <button class="js-btn-set-media-dir btn btn-default" type="button">Set Media Directory</button>
                               </span>
@@ -154,12 +155,17 @@
                               </span>
                             </div>
 
-                            <!--div class="input-group">
+                            <div class="input-group line-margin-after">
                               <span class="input-group-btn">
-                                <button id="btnSetBGDir" type="button" class="btn btn-default">Background Images</button>
+                                <button id="btnSetMusicPicDir" type="button" class="btn btn-default">Set Music Picture Directory</button>
                               </span>
-                              <input id="txtBGDir" type="text" class="form-control" readonly />
-                            </div-->
+                              <input id="txtMusicPicDir" type="text" class="form-control" readonly />
+                              <span class="input-group-btn">
+                                <button id="btnRefreshMusicPicDir" type="button" class="btn btn-default">
+                                  <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                </button>
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>

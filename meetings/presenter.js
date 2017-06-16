@@ -32,18 +32,94 @@ const MEDIA_PRESENTERS = {
   text: function(strText) {
     $('.middler-content:eq(0)').html(markdown.makeHtml(strText));
   },
-  lyrics: function(lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly) {
-    lyricsControl = showSongLyrics(lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, showDefaultText);
+  song: function({path, isBGMusic, lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly}) {
+    if (isBGMusic) {
+      $('<div class="music-presenter-bg">')
+        .css({
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0
+        })
+        .appendTo('body');
+      $('<div class="middler-wrap music-presenter"><div class="middler-table"><div class="middler-content"><div class="image">')
+        .css({
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0
+        })
+        .appendTo('body');
+      $('<div class="music-presenter-details"><div class="time"></div><div class="song-title"></div></div>')
+        .css({
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0
+        })
+        .appendTo('body');
+      if (!$('body').is('.showing-background-music')) {
+        changeSongImage();
+      }
+      $('body, .body').addClass('showing-background-music');
+    }
+    else if (lyrics) {
+      $('body, .body').addClass('showing-lyrics');
+      lyricsControl = showSongLyrics(lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, () => showDefaultText());
+    }
+
+    audio.pause();
+    audio.volume = 1;
+    audio.src = path;
+    audio.currentTime = 0;
+    audio.play();
   }
 };
 
-var media, mediaWidth, mediaHeight, objDefaultText, lyricsControl;
+var media, mediaWidth, mediaHeight, objDefaultText, lyricsControl, songImagePaths, audio;
 
-function showDefaultText() {
-  reset();
+function showDefaultText(opt_avoidReset) {
+  if (!opt_avoidReset) {
+    reset();
+  }
   
   $('body, .body').addClass('showing-default-text showing-text');
   $('.middler-content:eq(0)').html(markdown.makeHtml(JS.get(objDefaultText, 'text', '')));
+}
+
+function changeSongImage() {
+  if (JS.get(songImagePaths, 'length')) {
+    var imagePath = songImagePaths.pop();
+    songImagePaths.unshift(imagePath);
+
+    var jMusicPresenter = $('.music-presenter');
+    var jMusicPresenterBG = $('.music-presenter-bg');
+    var img = new Image();
+    img.src = imagePath;
+    img.onload = function() {
+      jMusicPresenterBG.css('background-image', `url("${imagePath}")`);
+      jMusicPresenter
+        .find('.image')
+          .css({
+            backgroundImage: `url("${imagePath}")`,
+            display: 'inline-block',
+            backgroundSize: 'contain',
+            transform: `rotate(${JS.random(0, 2, true) * 360}deg)`
+          })
+          .data('width', img.width)
+          .data('height', img.height);
+      resizeMedia();
+    };
+  }
+  else {
+    showDefaultText(true);
+  }
 }
 
 function readFileJSON(filePath) {
@@ -57,18 +133,34 @@ function reset() {
     lyricsControl = null;
   }
 
+  if ($('body').is('.showing-background-music')) {
+    var j = $('.music-presenter-bg, .music-presenter, .music-presenter-details').fadeTo(500, 0, () => j.remove());
+    fadeMusicOut();
+  }
+  else {
+    audio.pause();
+  }
+
   media = null;
   $('body, .body')
-    .removeClass('showing-media showing-text showing-default-text showing-video showing-image showing-lyrics')
+    .removeClass('showing-media showing-text showing-default-text showing-video showing-image showing-lyrics showing-background-music showing-song')
     .css('background-image', '');
   $('.middler-content').html('');
 }
 
 function resizeMedia() {
+  var [winWidth, winHeight] = winPresenter.getContentSize();
   if (media) {
-    var [width, height] = winPresenter.getContentSize();
-    ({width, height} = fitInto(width, height, mediaWidth, mediaHeight));
+    var {width, height} = fitInto(winWidth, winHeight, mediaWidth, mediaHeight);
     JS.extend(media.style, { width: `${width}px`, height: `${height}px` });
+  }
+
+  var jMusicPresenter = $('.music-presenter');
+  if (jMusicPresenter[0]) {
+    var jImage = jMusicPresenter.find('.image');
+    console.log({winWidth, winHeight, width:jImage.data('width'), height:jImage.data('height')});
+    var {width, height} = fitInto(winWidth, winHeight, jImage.data('width'), jImage.data('height'));
+    jImage.css({ width: width, height: height });
   }
 }
 
@@ -138,7 +230,7 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
     clearInterval(interval);
     interval = undefined;
     jWrap.remove();
-    onEnd('ended');
+    onEnd && onEnd('ended');
   }
 
   play();
@@ -171,45 +263,59 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
   };
 }
 
+ipcRenderer.on('present-media', function(event, mediaType) {
+  reset();
+
+  var caller = MEDIA_PRESENTERS[mediaType];
+  if (caller) {
+    $('body, .body').addClass(`showing-media showing-${mediaType}`);
+    caller.apply(this, JS.slice(arguments, 2));
+  }
+  else {
+    console.error(`Unsupported media type: ${mediaType}`);
+  }
+});
+
+ipcRenderer.on('update-song-images', (event, arrOfPaths) => {
+  songImagePaths = JS.randomize(arrOfPaths);
+});
+
+ipcRenderer.on('update-default-text', (event, objNewDefaultText) => {
+  objDefaultText = objNewDefaultText;
+  if ($('body').is(':not(.showing-media)')) {
+    showDefaultText();
+  }
+});
+
+ipcRenderer.on('unpresent-media', () => showDefaultText());
+
+ipcRenderer.on('update-presenter-css', (event, code) => {
+  var style = $('#presenterStyle')[0];
+  if (style.styleSheet && !style.sheet) {
+    style.styleSheet.cssText = code;
+  }
+  else {
+    style.innerHTML = '';
+    style.appendChild(document.createTextNode(code));
+  }
+});
+
+winPresenter.on('resize', () => {
+  winPresenter.setMenuBarVisibility(!winPresenter.isFullScreen());
+  resizeMedia();
+});
+
+function fadeMusicOut() {
+  audio.volume = 0.99;
+  var interval = setInterval(function() {
+    if (audio.volume >= 1 || audio.volume <= 0) {
+      clearInterval(interval);
+    }
+    audio.volume = JS.clamp(audio.volume - 0.01, 0, 1);
+  }, 10);
+}
+
 function onReady() {
-  ipcRenderer.on('present-media', function(event, mediaType) {
-    reset();
-
-    var caller = MEDIA_PRESENTERS[mediaType];
-    if (caller) {
-      $('body, .body').addClass(`showing-media showing-${mediaType}`);
-      caller.apply(this, JS.slice(arguments, 2));
-    }
-    else {
-      console.error(`Unsupported media type: ${mediaType}`);
-    }
-  });
-
-  ipcRenderer.on('update-default-text', (event, objNewDefaultText) => {
-    objDefaultText = objNewDefaultText;
-    if ($('body').is(':not(.showing-media)')) {
-      showDefaultText();
-    }
-  });
-
-  ipcRenderer.on('unpresent-media', showDefaultText);
-
-  ipcRenderer.on('update-presenter-css', (event, code) => {
-    var style = $('#presenterStyle')[0];
-    if (style.styleSheet && !style.sheet) {
-      style.styleSheet.cssText = code;
-    }
-    else {
-      style.innerHTML = '';
-      style.appendChild(document.createTextNode(code));
-    }
-  });
-
-  winPresenter.on('resize', () => {
-    winPresenter.setMenuBarVisibility(!winPresenter.isFullScreen());
-    resizeMedia();
-  });
-
   $('body').on('dblclick', function(e) {
     e.preventDefault();
     // Toggle fullscreen mode on the browser window.
@@ -218,6 +324,32 @@ function onReady() {
     // a range to be selected
     document.getSelection().removeAllRanges();
   });
+
+  window.audio = audio = $('<audio>')
+    .on('ended', function() {
+      winMain.webContents.send('ended-presenter-song');
+      if (!$('body').is('.showing-background-music')) {
+        showDefaultText();
+      }
+    })
+    .on('error', function() {
+      console.error('Error loading music:', { audio: audio, src: audio.src, arguments: arguments });
+      winMain.webContents.send('ended-presenter-song');
+      if (!$('body').is('.showing-background-music')) {
+        showDefaultText();
+      }
+    })
+    [0];
+
+  setInterval(function() {
+    if ($('body').is('.showing-background-music')) {
+      changeSongImage();
+    }
+  }, 5000);
+
+  setInterval(function() {
+    $('.music-presenter-details > .time').text(JS.formatDate(new Date, 'h:mm:ss A'));
+  }, 500);
 }
 
 $(onReady);

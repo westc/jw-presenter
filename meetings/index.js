@@ -19,11 +19,6 @@ const THUMB_WIDTH = 300;
 const SONG_CODES = [1102009094,1102009115,1102009080,1102009121,1102009129,1102009124,1102009098,1102009083,1102009087,1102009089,1102009122,1102009151,1102009095,1102009096,1102009099,1102009100,1102009101,1102009102,1102009103,1102009097,1102009104,1102009105,1102009106,1102009107,1102009163,1102009109,1102009110,1102009111,1102009113,1102009116,1102009117,1102009118,1102009119,1102009120,1102009123,1102009141,1102009112,1102009125,1102009127,1102009170,1102009156,1102009126,1102009128,1102009130,1102009131,1102009145,1102009144,1102009148,1102009149,1102009150,1102009153,1102009154,1102009162,1102009168,1102009108,1102009142,1102009210,1102009202,1102009160,1102009212,1102009208,1102009200,1102009091,1102009172,1102009140,1102009181,1102009157,1102009171,1102009209,1102009161,1102009137,1102009188,1102009152,1102009178,1102009164,1102009197,1102009093,1102009193,1102009186,1102009189,1102009173,1102009155,1102009134,1102009092,1102009174,1102009166,1102009143,1102009169,1102009138,1102009180,1102009139,1102009136,1102009185,1102009198,1102009204,1102009207,1102009147,1102009082,1102009158,1102009114,1102009086,1102009159,1102009084,1102009194,1102009196,1102009088,1102009165,1102009175,1102009167,1102009135,1102009132,1102009184,1102009183,1102009090,1102009146,1102009133,1102009081,1102009187,1102009211,1102009179,1102009192,1102009191,1102009203,1102009205,1102009085,1102009176,1102009177,1102009199,1102009190,1102009213,1102009201,1102009195,1102009206,1102009214,1102009182,1102014550,1102014551,1102014552,1102014554,1102014555,1102014556,1102014557,1102014558,1102014559,1102014560,1102014561,1102014562,1102014563,1102014564,1102014565,1102014566,1102014567,1102014568,1102014569];
 const SONG_COUNT = SONG_CODES.length;
 
-const audio = $('<audio>').on('ended', onMusicEnd).on('error', function() {
-  console.error('Error loading music:', { audio: audio, src: audio.src, arguments: arguments });
-  onMusicEnd();
-})[0];
-
 const AceModeMarkdown = ace.require('ace/mode/markdown').Mode,
       AceModeText = ace.require('ace/mode/text').Mode,
       AceModeCSS = ace.require('ace/mode/css').Mode,
@@ -86,6 +81,8 @@ var appSettings = {
 ipcRenderer.on('ended-presenter-video', (event) => {
   $('.btn.show-video').removeClass('active');
 });
+
+ipcRenderer.on('ended-presenter-song', onMusicEnd);
 
 function updatePresenterCSS(code) {
   winPresenter.webContents.send('update-presenter-css', code);
@@ -319,7 +316,7 @@ function loadSettings() {
   JS.walk(appSettings.get('collapsibles', {}), (action, id) => $(`#${id}`).collapse(action));
 
   var songsDir = appSettings.get('songsDir'),
-      bgDir = appSettings.get('bgDir'),
+      musicPicDir = appSettings.get('musicPicDir'),
       displayDir = appSettings.get('displayDir'),
       texts = appSettings.get('texts');
 
@@ -331,11 +328,11 @@ function loadSettings() {
     setSongsDir(songsDir);
   }
 
-  if (bgDir) {
-    if (!isDirectorySync(bgDir)) {
-      appSettings.set('bgDir', bgDir = undefined);
+  if (musicPicDir) {
+    if (!isDirectorySync(musicPicDir)) {
+      appSettings.set('musicPicDir', musicPicDir = undefined);
     }
-    $('#txtBGDir').val(bgDir);
+    setMusicPicDir(musicPicDir);
   }
 
   if (displayDir) {
@@ -369,6 +366,7 @@ function fillInTranslations(values) {
   fillInTranslationFor('lyrics-panel', '#collapseLyricsHeading a');
   fillInTranslationFor('properties-panel', '#collapsePropsHeading a');
   fillInTranslationFor('songs-directory-button', '#btnSetSongsDir');
+  fillInTranslationFor('music-pics-directory-button', '#btnSetMusicPicDir');
 }
 
 function fillInTranslationFor(id, target) {
@@ -384,9 +382,29 @@ function fillInTranslationFor(id, target) {
 
 function getTranslationFor(id) {
   if (!JS.has(translations, id)) {
-    console.error(`There is no translation for "${id}".`);
+    if (pullDefaultTranslationFor(id)) {
+      console.warn(`There was not tranlation for "${id}" so it was pulled from the default settings.`);
+    }
+    else {
+      console.error(`There is no default translation for "${id}".`);
+    }
   }
   return translations[id];
+}
+
+function pullDefaultTranslationFor(id) {
+  try {
+    var translation = JS.indexBy(JS.indexBy(readFileJSON(APP_SETTINGS_PATH).properties, 'id').translations.value, 'id')[id];
+    translations[translation.id] = translation.value;
+    
+    var properties = appSettings.get('properties');
+    JS.indexBy(properties, 'id').translations.value.push(translation);
+    appSettings.set('properties', properties);
+  }
+  catch (e) {
+    return false;
+  }
+  return true;
 }
 
 function addTextToList(text, i, selectIt) {
@@ -479,31 +497,31 @@ function compareFileNames(a, b) {
   }
 }
 
-function playSongAt(i, opt_lyricsIndex) {
-  var lyricsData, song = songs[lastSongIndex = i];
+function playSongAt(songIndex, isBGMusic, opt_lyricsIndex) {
+  var lyricsData, song = songs[lastSongIndex = songIndex];
+
   if (opt_lyricsIndex != undefined) {
     try {
-      if (lyricsData = readFileJSON(USER_LYRICS_PATH)[opt_lyricsIndex]) {
-        winPresenter.webContents.send('present-media', 'lyrics', lyricsData, 3, song.duration, 12, 2);
-      }
+      lyricsData = readFileJSON(USER_LYRICS_PATH)[opt_lyricsIndex];
     }
-    catch(e) {
-      console.error(e);
+    catch (e) {
+      console.error(`There are no lyrics at index ${opt_lyricsIndex}.`, e);
     }
   }
 
-  playAudio(appSettings.get('songsDir') + song.path);
+  winPresenter.webContents.send('present-media', 'song', {
+    path: getCleanPath(appSettings.get('songsDir') + song.path),
+    isBGMusic: isBGMusic,
+    lyrics: lyricsData,
+    linesToShowAtEnd: 3,
+    secsDuration: song.duration,
+    secsDelay: 12,
+    secsToEndEarly: 2
+  });
 }
 
 function unpressActiveMediaButtons() {
   $('#btnBGMusic, .btn.show-video, .btn.show-image, .btn.show-text, .btn.btn-play').removeClass('active');
-}
-
-function playAudio(path) {
-  audio.pause();
-  audio.currentTime = 0;
-  audio.src = getCleanPath(path);
-  audio.play();
 }
 
 function showSongsList() {
@@ -547,12 +565,11 @@ function showSongsList() {
           ],
           onclick: function() {
             if ($(this).hasClass('active')) {
-              audio.pause();
               winPresenter.webContents.send('unpresent-media');
             }
             else {
               unpressActiveMediaButtons();
-              playSongAt(i, songTitlesToLyricsIndex[song.title]);
+              playSongAt(i, false, songTitlesToLyricsIndex[song.title]);
             }
             $(this).toggleClass('active');
           }
@@ -561,6 +578,23 @@ function showSongsList() {
       ]
     }))
   );
+}
+
+function setMusicPicDir(dirPath) {
+  $('#txtMusicPicDir').val(dirPath);
+
+  var picPaths = [];
+
+  if (dirPath) {
+    recurseDirSync(dirPath, 3, function(filePath, isFile, stat) {
+      if (isFile && /\.(?:png|jpe?g|gif)$/i.test(filePath)) {
+        picPaths.push(filePath);
+      }
+      return !isFile && !/^\./.test(path.basename(filePath));
+    });
+  }
+
+  winPresenter.webContents.send('update-song-images', picPaths);
 }
 
 function setDisplayDir(dirPath) {
@@ -692,7 +726,6 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
           }
           else {
             unpressActiveMediaButtons();
-            audio.pause();
             var details = { width, height};
             if (!isImage) {
               details.time = parseTime(jContentWrap.find(':text.time').val());
@@ -822,7 +855,6 @@ function setDisplayTextListItem(jListItem, text, textIndex) {
         }
         else {
           unpressActiveMediaButtons();
-          audio.pause();
           winPresenter.webContents.send('present-media', 'text', text.text);
         }
         jThis.toggleClass('active');
@@ -864,10 +896,9 @@ function updateDisplayText(text, i) {
 }
 
 function onMusicEnd() {
-  audio.pause();
   if ($('#btnBGMusic').hasClass('active')) {
     var songIndex = executePropFunc('song-randomizer', [songs, lastSongIndex]);
-    playSongAt(songIndex == undefined ? JS.random(songs.length - 1, true) : songIndex);
+    playSongAt(songIndex == undefined ? JS.random(songs.length - 1, true) : songIndex, true);
   }
   else {
     unpressActiveMediaButtons();
@@ -987,6 +1018,26 @@ $(function() {
     setSongsDir(dirPath);
   });
 
+  $('#btnSetMusicPicDir').click(() => {
+    dialog.showOpenDialog({
+      properties: ['openDirectory']
+    }, ([dirPath]) => {
+      if (dirPath) {
+        var dirPath = dirPath.replace(new RegExp(`(${JS.quoteRegExp(path.sep)})?$`), path.sep);
+        appSettings.set('musicPicDir', dirPath);
+        setMusicPicDir(dirPath);
+      }
+    });
+  });
+
+  $('#btnRefreshMusicPicDir').click(function() {
+    var dirPath = appSettings.get('songsDir');
+    if (!isDirectorySync(dirPath)) {
+      appSettings.set('musicPicDir', dirPath = undefined);
+    }
+    setMusicPicDir(dirPath);
+  });
+
   $('#formLyricsLang').on('submit', function(e) {
     try { fs.unlinkSync(USER_LYRICS_PATH); } catch(e){}
     updateLyricsImportTable();
@@ -1059,9 +1110,11 @@ $(function() {
     var wasPressed = $(this).hasClass('active');
     unpressActiveMediaButtons();
     // Done this way cuz of unpressActiveMediaButtons()
-    if (!wasPressed) {
-      $(this).addClass('active');
+    if (wasPressed) {
       winPresenter.webContents.send('unpresent-media');
+    }
+    else {
+      $(this).addClass('active');
     }
     onMusicEnd();
   });
