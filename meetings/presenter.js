@@ -98,16 +98,20 @@ function changeSongImage() {
     var imagePath = songImagePaths.pop();
     songImagePaths.unshift(imagePath);
 
+    // On Windows the backslash needs to be doubly escaped:
+    // http://cwestblog.com/2017/06/16/css-local-file-system-paths-on-windows/
+    var cssImagePath = imagePath.replace(/\\/g, '\\\\');
+
     var jMusicPresenter = $('.music-presenter');
     var jMusicPresenterBG = $('.music-presenter-bg');
     var img = new Image();
     img.src = imagePath;
     img.onload = function() {
-      jMusicPresenterBG.css('background-image', `url("${imagePath}")`);
+      jMusicPresenterBG.css('background-image', `url("${cssImagePath}")`);
       jMusicPresenter
         .find('.image')
           .css({
-            backgroundImage: `url("${imagePath}")`,
+            backgroundImage: `url("${cssImagePath}")`,
             display: 'inline-block',
             backgroundSize: 'contain',
             transform: `rotate(${JS.random(0, 2, true) * 360}deg)`

@@ -22,7 +22,7 @@
 
     // Load ACE (ace)
     ['ace', 'mode-javascript', 'mode-markdown', 'mode-css'].forEach((v) => require(`./../ace/src/${v}`));
-    ace.config.set('basePath', 'ace/src');
+    ace.config.set('basePath', './../ace/src');
 
     // Load the index and loader scripts
     require('./index');

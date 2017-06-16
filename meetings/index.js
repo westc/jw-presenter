@@ -445,7 +445,7 @@ function setSongsDir(dirPath) {
 
   recurseDirSync(dirPath, Infinity, function(filePath, isFile, stat) {
     var relFilePath = filePath.replace(new RegExp(`^${JS.quoteRegExp(dirPath)}`), '');
-    if (isFile && /\.mp3$/i.test(relFilePath)) {
+    if (isFile && !path.basename(filePath).startsWith('.') && /\.mp3$/i.test(relFilePath)) {
       loader.max++;
       var song = oldSongsByPath[relFilePath];
       // if the old song is found simply add it to the current list
@@ -587,7 +587,7 @@ function setMusicPicDir(dirPath) {
 
   if (dirPath) {
     recurseDirSync(dirPath, 3, function(filePath, isFile, stat) {
-      if (isFile && /\.(?:png|jpe?g|gif)$/i.test(filePath)) {
+      if (isFile && !path.basename(filePath).startsWith('.') && /\.(?:png|jpe?g|gif)$/i.test(filePath)) {
         picPaths.push(filePath);
       }
       return !isFile && !/^\./.test(path.basename(filePath));
@@ -605,7 +605,7 @@ function setDisplayDir(dirPath) {
   if (dirPath) {
     recurseDirSync(dirPath, 3, function(filePath, isFile, stat) {
       var [ext, extImg, extVid] = filePath.match(/\.(?:(png|jpe?g|gif)|(mp4))$/i) || [];
-      if (isFile && ext) {
+      if (isFile && ext && !path.basename(filePath).startsWith('.')) {
         if (extVid) {
           var jListItem = $('<div class="list-item">').appendTo('#collapseVideos > .panel-body');
           mm(fs.createReadStream(filePath), function (err, metadata) {
