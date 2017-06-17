@@ -164,6 +164,11 @@
           "value": "Play"
         },
         {
+          "id": "show-song-button",
+          "label": "\"Show Song\" Button (show song without playing it)",
+          "value": "Show"
+        },
+        {
           "id": "display-tab",
           "label": "\"Display\" Tab",
           "value": "Display"

@@ -497,7 +497,7 @@ function compareFileNames(a, b) {
   }
 }
 
-function playSongAt(songIndex, isBGMusic, opt_lyricsIndex) {
+function playSongAt(songIndex, isBGMusic, opt_lyricsIndex, opt_startPaused) {
   var lyricsData, song = songs[lastSongIndex = songIndex];
 
   if (opt_lyricsIndex != undefined) {
@@ -516,12 +516,31 @@ function playSongAt(songIndex, isBGMusic, opt_lyricsIndex) {
     linesToShowAtEnd: 3,
     secsDuration: song.duration,
     secsDelay: 12,
-    secsToEndEarly: 2
+    secsToEndEarly: 2,
+    startPaused: opt_startPaused
+  });
+
+  toggleMusicPauseButton(!opt_startPaused);
+  $('#modalMusic .lyrics-navigator')[isBGMusic ? 'hide' : 'show']();
+  $('#txtMusicTitle').val(song.title);
+  $('#txtMusicDuration').val(formatTime(~~song.duration));
+
+  $('#modalMusic').modal({
+    backdrop: isBGMusic || 'static',
+    keyboard: false
   });
 }
 
+function toggleMusicPauseButton(opt_startPaused) {
+  var jButton = $('#modalMusic .btn-pause-music');
+  if (!JS.isBoolean(opt_startPaused) || opt_startPaused != jButton.is('.btn-warning')) {
+    jButton.toggleClass('btn-success btn-warning')
+      .find('.glyphicon').toggleClass('glyphicon-play glyphicon-pause');
+  }
+}
+
 function unpressActiveMediaButtons() {
-  $('#btnBGMusic, .btn.show-video, .btn.show-image, .btn.show-text, .btn.btn-play').removeClass('active');
+  $('#btnBGMusic, .btn.show-video, .btn.show-image, .btn.show-text').removeClass('active');
 }
 
 function showSongsList() {
@@ -557,22 +576,74 @@ function showSongsList() {
       cls: 'song-line',
       $: [
         {
-          _: 'button',
-          cls: 'btn btn-default btn-play',
+          _: 'div',
+          cls: 'btn-group',
           $: [
-            { _: 'span', cls: 'glyphicon glyphicon-play', 'aria-hidden': true },
-            ' ' + getTranslationFor(`play-${songTitlesToLyricsIndex.hasOwnProperty(song.title)?'lyrics':'song'}-button`)
-          ],
-          onclick: function() {
-            if ($(this).hasClass('active')) {
-              winPresenter.webContents.send('unpresent-media');
+            {
+              _: 'button',
+              cls: 'btn btn-default btn-play',
+              $: [
+                { _: 'span', cls: 'glyphicon glyphicon-play', 'aria-hidden': true },
+                ' ' + getTranslationFor(`play-${songTitlesToLyricsIndex.hasOwnProperty(song.title)?'lyrics':'song'}-button`)
+              ],
+              onclick() {
+                unpressActiveMediaButtons();
+                playSongAt(i, false, songTitlesToLyricsIndex[song.title]);
+              }
+            },
+            {
+              _: 'button',
+              type: 'button',
+              cls: 'btn btn-default dropdown-toggle',
+              'data-toggle': 'dropdown',
+              'aria-haspopup': true,
+              'aria-expanded': false,
+              $: [
+                { _: 'span', cls: 'caret' }
+              ]
+            },
+            {
+              _: 'ul',
+              cls: 'dropdown-menu',
+              $: [
+                {
+                  _: 'li',
+                  $: [
+                    {
+                      _: 'a',
+                      href: '#',
+                      text: getTranslationFor('show-song-button'),
+                      onclick() {
+                        unpressActiveMediaButtons();
+                        playSongAt(i, false, songTitlesToLyricsIndex[song.title], true);
+                      }
+                    },
+                    {
+                      _: 'a',
+                      href: '#',
+                      text: getTranslationFor('play-song-button'),
+                      onclick() {
+                        unpressActiveMediaButtons();
+                        playSongAt(i, false);
+                      }
+                    },
+                    {
+                      _: 'a',
+                      href: '#',
+                      text: getTranslationFor('play-lyrics-button'),
+                      onclick() {
+                        unpressActiveMediaButtons();
+                        playSongAt(i, false, songTitlesToLyricsIndex[song.title]);
+                      }
+                    }
+                  ].slice(
+                    songTitlesToLyricsIndex.hasOwnProperty(song.title) ? 0 : 1,
+                    songTitlesToLyricsIndex.hasOwnProperty(song.title) ? 3 : 2
+                  )
+                }
+              ]
             }
-            else {
-              unpressActiveMediaButtons();
-              playSongAt(i, false, songTitlesToLyricsIndex[song.title]);
-            }
-            $(this).toggleClass('active');
-          }
+          ]
         },
         ` ${song.title}`
       ]
@@ -901,6 +972,7 @@ function onMusicEnd() {
     playSongAt(songIndex == undefined ? JS.random(songs.length - 1, true) : songIndex, true);
   }
   else {
+    $('#modalMusic').modal('hide');
     unpressActiveMediaButtons();
   }
 }
@@ -1227,6 +1299,20 @@ $(function() {
   });
   addKeyBindingsMenuTo(propCodeEditor);
 
+  $('#modalMusic .btn-stop-music').click(() => {
+    unpressActiveMediaButtons();
+    winPresenter.webContents.send('unpresent-media');
+  });
+
+  ['move-lyrics-up', 'move-lyrics-down', 'pause-music'].forEach(
+    (name) => $(`#modalMusic .btn-${name}`).click(() => {
+      if (name.endsWith('pause-music')) {
+        toggleMusicPauseButton();
+      }
+      winPresenter.webContents.send(name);
+    })
+  );
+
   loadSettings();
 });
 
@@ -1362,7 +1448,6 @@ function hasCodeChanged() {
   else if (property.type == 'properties-list') {
     for (var jInputs = $('#divPropList :text'), props = property.value, i = props.length; i--;) {
       if (props[i].value != jInputs.eq(i).val()) {
-        console.log(props[i].value, jInputs.eq(i).val(), props[i]);
         return true;
       }
     }

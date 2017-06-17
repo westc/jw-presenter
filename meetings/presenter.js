@@ -32,7 +32,7 @@ const MEDIA_PRESENTERS = {
   text: function(strText) {
     $('.middler-content:eq(0)').html(markdown.makeHtml(strText));
   },
-  song: function({path, isBGMusic, lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly}) {
+  song: function({path, isBGMusic, lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, startPaused}) {
     if (isBGMusic) {
       $('<div class="music-presenter-bg">')
         .css({
@@ -78,7 +78,9 @@ const MEDIA_PRESENTERS = {
     audio.volume = 1;
     audio.src = path;
     audio.currentTime = 0;
-    audio.play();
+    if (!startPaused) {
+      audio.play();
+    }
   }
 };
 
@@ -209,21 +211,18 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
   
   var msPassedAtPause, interval;
   var tsStart = +new Date();
-  var msDelay = secsDelay * 1000;
-  var msEndEarly = secsToEndEarly * 1000;
-  var msScrollTime = (secsDuration - secsDelay - secsToEndEarly) * 1000;
-  var msDuration = secsDuration * 1000;
+  var secsScrollTime = (secsDuration - secsDelay - secsToEndEarly);
+  var percentOffset = 0;
 
   function play() {
     interval = setInterval(function() {
       var tsNow = +new Date();
-      var timePast = tsNow - tsStart;
-      if (timePast >= msDelay) {
-        var percent = Math.min((timePast - msDelay) / (msScrollTime - msEndEarly), 1);
+      var secsPast = audio.currentTime + audio.duration * percentOffset / 100;
+      if (secsPast >= secsDelay) {
+        var percent = Math.min((secsPast - secsDelay) / (secsScrollTime - secsToEndEarly), 1);
         var fullDistance = jWrap.outerHeight() - jLine.outerHeight() * linesToShowAtEnd;
-        Math.min(percent, 1);
         jWrap.css('top', -percent * fullDistance);
-        if (timePast >= msDuration) {
+        if (secsPast >= secsDuration) {
           stop('ended');
         }
       }
@@ -249,17 +248,9 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
         stop('stop');
       }
     }
-    else if (action == 'time') {
-      tsStart = +new Date() - value * 1000;
-    }
-    else if (action == 'pause') {
-      clearInterval(interval);
-      msPassedAtPause = msPassedAtPause || +new Date() - tsStart;
-    }
-    else if (action == 'play') {
-      tsStart = +new Date() - msPassedAtPause;
-      msPassedAtPause = 0;
-      play();
+    else if (action == 'offset') {
+      percentOffset += value;
+      console.log({percentOffset});
     }
     else {
       throw new Error(`Unsupported action "${action}".`);
@@ -303,6 +294,12 @@ ipcRenderer.on('update-presenter-css', (event, code) => {
     style.appendChild(document.createTextNode(code));
   }
 });
+
+ipcRenderer.on('move-lyrics-up', () => lyricsControl('offset', 1));
+
+ipcRenderer.on('move-lyrics-down', () => lyricsControl('offset', -1));
+
+ipcRenderer.on('pause-music', () => audio[audio.paused ? 'play' : 'pause']());
 
 winPresenter.on('resize', () => {
   winPresenter.setMenuBarVisibility(!winPresenter.isFullScreen());
