@@ -1,10 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const {dialog, app} = require('electron').remote;
+const DEFAULT_SETTINGS = require('./default-settings');
 
-const APP_BASE_PATH = path.dirname(require.main.filename);
 const USER_DATA_PATH = app.getPath('userData');
-const APP_SETTINGS_PATH = path.join(APP_BASE_PATH, 'settings.json');
 const USER_SETTINGS_PATH = path.join(USER_DATA_PATH, 'preaching-settings.json');
 
 var isPlayingAll = false, isPlaying = false, isToShowSlides = false, videoFiles = [], randomOrder = [], lastIndexInRandom = 0;
@@ -17,7 +16,7 @@ var appSettings = window.appSettings = {
         data = readFileJSON(USER_SETTINGS_PATH);
       }
       catch (e) {
-        data = readFileJSON(APP_SETTINGS_PATH);
+        data = jQuery.extend(true, {}, DEFAULT_SETTINGS);
       }
     }
     catch (e) {

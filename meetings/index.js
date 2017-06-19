@@ -5,14 +5,13 @@ const { ipcRenderer, remote } = electron;
 const { dialog, BrowserWindow, shell, app } = remote;
 const mm = require('musicmetadata');
 const markdown = new (require('showdown').Converter);
+const DEFAULT_SETTINGS = require('./default-settings');
 
 const { presenter: winPresenter, main: winMain } = JS.indexBy(BrowserWindow.getAllWindows(), 'name');
 
-const APP_BASE_PATH = path.dirname(require.main.filename);
 const USER_DATA_PATH = app.getPath('userData');
 const USER_LYRICS_PATH = path.join(USER_DATA_PATH, 'meetings-lyrics.json');
 const USER_SETTINGS_PATH = path.join(USER_DATA_PATH, 'meetings-settings.json');
-const APP_SETTINGS_PATH = path.join(APP_BASE_PATH, 'settings.json');
 
 const THUMB_WIDTH = 300;
 
@@ -43,7 +42,7 @@ var appSettings = {
         data = readFileJSON(USER_SETTINGS_PATH);
       }
       catch (e) {
-        data = readFileJSON(APP_SETTINGS_PATH);
+        data = jQuery.extend(true, {}, DEFAULT_SETTINGS);
       }
     }
     catch (e) {
@@ -394,7 +393,7 @@ function getTranslationFor(id) {
 
 function pullDefaultTranslationFor(id) {
   try {
-    var translation = JS.indexBy(JS.indexBy(readFileJSON(APP_SETTINGS_PATH).properties, 'id').translations.value, 'id')[id];
+    var translation = JS.indexBy(JS.indexBy(DEFAULT_SETTINGS.properties, 'id').translations.value, 'id')[id];
     translations[translation.id] = translation.value;
     
     var properties = appSettings.get('properties');

@@ -4,8 +4,6 @@ const os = require('os');
 const {app, BrowserWindow, Menu, shell, powerSaveBlocker, ipcMain} = require('electron');
 const JS = require('./YourJS/JS.js');
 
-const USER_DATA_PATH = app.getPath('userData');
-
 const IS_MAC = /^darwin/.test(os.platform());
 
 var isFileSync = pathToCheck => (fs.existsSync(pathToCheck) || undefined) && fs.statSync(pathToCheck).isFile();
@@ -27,14 +25,6 @@ function focusOrOpen(id, fnIfNotOpen) {
   for (var windows = appWindows[id], i = windows.length; i--; ) {
     windows[i].show();
     if (!i) { return; }
-  }
-
-  // If the apps settings.json file doesn't exist, copy the default from the
-  // app's directory.
-  var defaultAppSettingsPath = path.join(__dirname, id, 'settings.json');
-  var appSettingsPath = path.join(USER_DATA_PATH, `${id}-settings.json`);
-  if (isFileSync(defaultAppSettingsPath) && !isFileSync(appSettingsPath)) {
-    fs.writeFileSync(appSettingsPath, fs.readFileSync(defaultAppSettingsPath, 'utf8'), 'utf8');
   }
 
   appWindows[id] = fnIfNotOpen();

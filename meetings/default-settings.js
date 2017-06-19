@@ -1,4 +1,4 @@
-{
+module.exports = {
   "properties": [
     {
       "id": "presenter-css",
@@ -271,4 +271,4 @@
   "songs": [],
   "defaultTextIndex": 0,
   "collapsibles": {}
-}
+};
