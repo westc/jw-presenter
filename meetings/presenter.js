@@ -27,7 +27,9 @@ const MEDIA_PRESENTERS = {
         currentTime: details.time
       }));
     resizeMedia();
-    media.play();
+    if (!details.paused) {
+      media.play();
+    }
   },
   text: function(strText) {
     $('.middler-content:eq(0)').html(markdown.makeHtml(strText));
@@ -302,6 +304,10 @@ ipcRenderer.on('move-lyrics-down', () => lyricsControl('offset', -1));
 
 ipcRenderer.on('pause-music', () => audio[audio.paused ? 'play' : 'pause']());
 
+ipcRenderer.on('pause-video', () => media[media.paused ? 'play' : 'pause']());
+
+ipcRenderer.on('set-video-time', (event, time) => media.currentTime = time);
+
 winPresenter.on('resize', () => {
   winPresenter.setMenuBarVisibility(!winPresenter.isFullScreen());
   resizeMedia();
@@ -349,7 +355,15 @@ function onReady() {
     }
   }, 7e3);
 
-  setInterval(() => $('.music-presenter-details > .time').text(JS.formatDate(new Date, 'h:mm:ss A')), 500);
+  setInterval(() => {
+    var classList = $('body')[0].classList;
+    if (classList.contains('showing-background-music')) {
+      $('.music-presenter-details > .time').text(JS.formatDate(new Date, 'h:mm:ss A'));
+    }
+    else if (classList.contains('showing-video') && !media.paused) {
+      winMain.webContents.send('playing-video', media.currentTime);
+    }
+  }, 500);
 }
 
 $(onReady);

@@ -80,7 +80,7 @@ module.exports = {
     {
       "id": "parse-jw-library-lyrics-page",
       "name": "Parse Online JW Library Lyrics Page",
-      "value": "var j = $(html).find('.pub-sn, .pub-snnw');\nvar heading = j.find('.contextTtl').text().trim().replace(/\\xA0/g, ' ');\nvar title = j.find('h1').text().trim().replace(/\\xA0/g, ' ');\nvar theme = j.find('.themeScrp').text().trim().replace(/\\xA0/g, ' ');\nvar stanzas = j.find('.bodyTxt [data-pid]').toArray().reduce(function(stanzas, e, i) {\n  var j = $(e);\n  if (j.hasClass('sl')) {\n    stanzas.push([]);\n  }\n  [...stanzas].pop().push(j.text().trim().replace(/^\\d\\.[\\xA0\\s]+/, '').replace(/\\xA0/g, ' '));\n  return stanzas;\n}, []);\nreturn j[0] && { heading, title, theme, stanzas };",
+      "value": "var j = $(html).find('.pub-sn, .pub-snnw');\nvar heading = j.find('.contextTtl').text().trim().replace(/\\xA0/g, ' ');\nvar title = j.find('h1').text().trim().replace(/\\xA0/g, ' ');\nvar theme = j.find('.themeScrp').text().trim().replace(/\\xA0/g, ' ');\nvar stanzas = j.find('.bodyTxt [data-pid]:not(:has([data-pid]))').toArray().reduce(function(stanzas, e, i) {\n  var j = $(e);\n  if (j.hasClass('sl')) {\n    stanzas.push([]);\n  }\n  [...stanzas].pop().push(j.text().trim().replace(/^\\d\\.[\\xA0\\s]+/, '').replace(/\\xA0/g, ' '));\n  return stanzas;\n}, []);\nreturn j[0] && { heading, title, theme, stanzas };",
       "type": "function",
       "arguments": [
         {
@@ -194,6 +194,11 @@ module.exports = {
           "value": "Show Image"
         },
         {
+          "id": "show-video-button",
+          "label": "\"Show Video\" Button",
+          "value": "Show Video"
+        },
+        {
           "id": "videos-panel",
           "label": "\"Videos\" Panel",
           "value": "Videos"
@@ -205,8 +210,8 @@ module.exports = {
         },
         {
           "id": "play-video-button",
-          "label": "\"Show Video\" Button",
-          "value": "Show Video"
+          "label": "\"Play Video\" Button",
+          "value": "Play Video"
         },
         {
           "id": "display-texts-panel",

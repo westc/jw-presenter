@@ -81,6 +81,11 @@ ipcRenderer.on('ended-presenter-video', (event) => {
   $('.btn.show-video').removeClass('active');
 });
 
+ipcRenderer.on('playing-video', (event, currentTime) => {
+  $('#modalVideo .range').val(currentTime);
+  $('#modalVideo .current-time').text(formatTime(~~currentTime));
+});
+
 ipcRenderer.on('ended-presenter-song', onMusicEnd);
 
 function updatePresenterCSS(code) {
@@ -519,7 +524,7 @@ function playSongAt(songIndex, isBGMusic, opt_lyricsIndex, opt_startPaused) {
     startPaused: opt_startPaused
   });
 
-  toggleMusicPauseButton(!opt_startPaused);
+  toggleMusicPauseButton(!!opt_startPaused);
   $('#modalMusic .lyrics-navigator')[isBGMusic ? 'hide' : 'show']();
   $('#txtMusicTitle').val(song.title);
   $('#txtMusicDuration').val(formatTime(~~song.duration));
@@ -530,12 +535,28 @@ function playSongAt(songIndex, isBGMusic, opt_lyricsIndex, opt_startPaused) {
   });
 }
 
+// Pass true to show play button and false to show pause button or pass nothing
+//     to simply toggle button.
+// Returns true showing play button.
 function toggleMusicPauseButton(opt_startPaused) {
   var jButton = $('#modalMusic .btn-pause-music');
-  if (!JS.isBoolean(opt_startPaused) || opt_startPaused != jButton.is('.btn-warning')) {
+  if (!JS.isBoolean(opt_startPaused) || opt_startPaused == jButton.is('.btn-warning')) {
     jButton.toggleClass('btn-success btn-warning')
       .find('.glyphicon').toggleClass('glyphicon-play glyphicon-pause');
   }
+  return jButton.is('.btn-success');
+}
+
+// Pass true to show play button and false to show pause button or pass nothing
+//     to simply toggle button.
+// Returns true showing play button.
+function toggleVideoPauseButton(opt_startPaused) {
+  var jButton = $('#modalVideo .btn-pause-video');
+  if (!JS.isBoolean(opt_startPaused) || opt_startPaused == jButton.is('.btn-warning')) {
+    jButton.toggleClass('btn-success btn-warning')
+      .find('.glyphicon').toggleClass('glyphicon-play glyphicon-pause');
+  }
+  return jButton.is('.btn-success');
 }
 
 function unpressActiveMediaButtons() {
@@ -785,24 +806,40 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
           }));
       }
 
+      // "Show Image" or "Show Video" button
       var objButton = {
         _: 'button',
         cls: `btn btn-default show-${isImage?'image':'video'}`,
-        text: isImage ? getTranslationFor('show-image-button') : getTranslationFor('play-video-button'),
-        onclick: function() {
-          var jThis = $(this);
-          if (jThis.hasClass('active')) {
-            winPresenter.webContents.send('unpresent-media');
+        $: [
+          { _: 'span', cls: 'glyphicon glyphicon-picture', 'aria-hidden': true },
+          ' ',
+          getTranslationFor(`show-${isImage?'image':'video'}-button`)
+        ],
+        onclick() {
+          if (isImage) {
+            var jThis = $(this);
+            if (jThis.hasClass('active')) {
+              winPresenter.webContents.send('unpresent-media');
+            }
+            else {
+              unpressActiveMediaButtons();
+              winPresenter.webContents.send('present-media', 'image', getCleanPath(filePath), { width, height});
+            }
+            jThis.toggleClass('active');
           }
           else {
-            unpressActiveMediaButtons();
-            var details = { width, height};
-            if (!isImage) {
-              details.time = parseTime(jContentWrap.find(':text.time').val());
-            }
-            winPresenter.webContents.send('present-media', isImage ? 'image' : 'video', getCleanPath(filePath), details);
+            var currentTime = parseTime(jContentWrap.find(':text.time').val()),
+                duration = data.realDuration;
+            toggleVideoPauseButton(true);
+            $('#modalVideo')
+              .find('#txtVideoTitle').val(title).end()
+              .find('.range').prop({ max: duration, value: currentTime, disabled: false }).end()
+              .find('.current-time').text(formatTime(currentTime)).end()
+              .find('#txtVideoDuration').val(formatTime(~~duration)).end()
+              .find('.duration').text(formatTime(~~duration)).end()
+              .modal({ backdrop: 'static', keyboard: false });
+            winPresenter.webContents.send('present-media', 'video', getCleanPath(filePath), { width, height, time: currentTime, paused: true });
           }
-          jThis.toggleClass('active');
         }
       };
 
@@ -815,8 +852,33 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
           $: [
             {
               _: 'div',
-              style: { display: 'inline-block', verticalAlign: 'top', paddingRight: '1em' },
-              $: objButton
+              cls: 'btn-group',
+              style: { paddingRight: '1em' },
+              $: [
+                objButton,
+                {
+                  _: 'button',
+                  cls: `btn btn-default play-video`,
+                  $: [
+                    { _: 'span', cls: 'glyphicon glyphicon-play' },
+                    ' ',
+                    getTranslationFor(`play-video-button`)
+                  ],
+                  onclick() {
+                    var currentTime = parseTime(jContentWrap.find(':text.time').val()),
+                        duration = data.realDuration;
+                    toggleVideoPauseButton(false);
+                    $('#modalVideo')
+                      .find('#txtVideoTitle').val(title).end()
+                      .find('.range').prop({ max: duration, value: currentTime, disabled: true }).end()
+                      .find('.current-time').text(formatTime(currentTime)).end()
+                      .find('#txtVideoDuration').val(formatTime(~~duration)).end()
+                      .find('.duration').text(formatTime(~~duration)).end()
+                      .modal({ backdrop: 'static', keyboard: false });
+                    winPresenter.webContents.send('present-media', 'video', getCleanPath(filePath), { width, height, time: currentTime });
+                  }
+                }
+              ]
             },
             {
               _: 'div',
@@ -912,41 +974,52 @@ function setDisplayTextListItem(jListItem, text, textIndex) {
         .addClass('content-wrap')
         .append('<div class="title"></div>');
 
-
-  jContentWrap.append([
-    JS.dom({
-      _: 'button',
-      cls: `btn btn-default show-text`,
-      text: getTranslationFor('show-text-button'),
-      onclick: function() {
-        var jThis = $(this);
-        if (jThis.hasClass('active')) {
-          winPresenter.webContents.send('unpresent-media');
+  jContentWrap.append(JS.dom({
+    _: 'div',
+    cls: 'btn-group',
+    $: [
+      {
+        _: 'button',
+        cls: `btn btn-default btn-primary show-text`,
+        $: [
+          { _: 'span', cls: 'glyphicon glyphicon-picture', 'aria-hidden': true },
+          ' ',
+          getTranslationFor('show-text-button')
+        ],
+        onclick: function() {
+          var jThis = $(this);
+          if (jThis.hasClass('active')) {
+            winPresenter.webContents.send('unpresent-media');
+          }
+          else {
+            unpressActiveMediaButtons();
+            winPresenter.webContents.send('present-media', 'text', text.text);
+          }
+          jThis.toggleClass('active');
         }
-        else {
-          unpressActiveMediaButtons();
-          winPresenter.webContents.send('present-media', 'text', text.text);
+      },
+      {
+        _: 'button',
+        cls: `btn btn-default default-text`,
+        $: [
+          { _: 'span', cls: 'glyphicon glyphicon-check', 'aria-hidden': true },
+          ' ',
+          getTranslationFor('default-text-button')
+        ],
+        onclick: function() {
+          var jThis = $(this);
+          if (jThis.hasClass('active')) {
+            appSettings.set('defaultTextIndex', undefined, () => winPresenter.webContents.send('update-default-text', undefined));
+          }
+          else {
+            appSettings.set('defaultTextIndex', textIndex, () => winPresenter.webContents.send('update-default-text', text));
+            $('.btn.default-text').removeClass('active');
+          }
+          jThis.toggleClass('active');
         }
-        jThis.toggleClass('active');
       }
-    }),
-    JS.dom({
-      _: 'button',
-      cls: `btn btn-default default-text`,
-      text: getTranslationFor('default-text-button'),
-      onclick: function() {
-        var jThis = $(this);
-        if (jThis.hasClass('active')) {
-          appSettings.set('defaultTextIndex', undefined, () => winPresenter.webContents.send('update-default-text', undefined));
-        }
-        else {
-          appSettings.set('defaultTextIndex', textIndex, () => winPresenter.webContents.send('update-default-text', text));
-          $('.btn.default-text').removeClass('active');
-        }
-        jThis.toggleClass('active');
-      }
-    })
-  ]);
+    ]
+  }));
 
   var defaultTextIndex = appSettings.get('defaultTextIndex');
   if (defaultTextIndex === textIndex) {
@@ -1298,14 +1371,25 @@ $(function() {
   });
   addKeyBindingsMenuTo(propCodeEditor);
 
-  $('#modalMusic .btn-stop-music').click(() => {
+  $('#modalMusic .btn-stop-music, #modalVideo .btn-stop-video').click(() => {
     unpressActiveMediaButtons();
     winPresenter.webContents.send('unpresent-media');
   });
 
+  $('#modalVideo .range').on('change', function() {
+    $('#modalVideo .current-time').text(formatTime(~~this.value));
+    winPresenter.webContents.send('set-video-time', this.value);
+  });
+
+  $('#modalVideo .btn-pause-video').click(function() {
+    var isPaused = toggleVideoPauseButton();
+    $('#modalVideo .range').prop('disabled', !isPaused);
+    winPresenter.webContents.send('pause-video');
+  });
+
   ['move-lyrics-up', 'move-lyrics-down', 'pause-music'].forEach(
     (name) => $(`#modalMusic .btn-${name}`).click(() => {
-      if (name.endsWith('pause-music')) {
+      if (name == 'pause-music') {
         toggleMusicPauseButton();
       }
       winPresenter.webContents.send(name);

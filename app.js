@@ -288,7 +288,10 @@ ipcMain.on('start-meetings-app', () => {
 
     var winMain = new BrowserWindow({
       // https://codepen.io/cwestify/pen/rmdZBN
-      icon: path.join(__dirname, 'assets/icons/256.png')
+      icon: path.join(__dirname, 'assets/icons/256.png'),
+      width: 1000,
+      useContentSize: true,
+      center: true
     });
     winMain.name = 'main';
     winMain.on('focus', setMenu);

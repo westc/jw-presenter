@@ -325,6 +325,39 @@
       </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
 
+    <div id="modalVideo" class="modal fade" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-body">
+            <label for="txtVideoTitle">Title:</label>
+            <div><input id="txtVideoTitle" type="text" class="form-control" readonly /></div>
+            <label for="txtVideoDuration">Duration:</label>
+            <div><input id="txtVideoDuration" type="text" class="form-control" readonly /></div>
+          </div>
+          <div class="modal-footer">
+            <div style="display: table; width: 100%;">
+              <div style="display: table-cell;">
+                  <input class="range" type="range" min="0" style="width: 100%;" />
+              </div>
+              <div style="display: table-cell; width: 1px; padding: 0 10px; white-space: nowrap;">
+                <span class="current-time"></span> of <span class="duration"></span>
+              </div>
+              <div style="display: table-cell; width: 80px; white-space: nowrap;">
+                <div class="btn-group">
+                  <button type="button" class="btn btn-warning btn-pause-video">
+                    <span class="glyphicon glyphicon-pause" aria-hidden="true"></span>
+                  </button>
+                  <button type="button" class="btn btn-danger btn-stop-video" data-dismiss="modal">
+                    <span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="../bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script src="../bootstrap-combobox/js/bootstrap-combobox.js"></script>
