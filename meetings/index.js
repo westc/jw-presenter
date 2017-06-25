@@ -524,7 +524,7 @@ function playSongAt(songIndex, isBGMusic, opt_lyricsIndex, opt_startPaused) {
   $('#txtMusicTitle').val(song.title);
   $('#txtMusicDuration').val(formatTime(~~song.duration));
 
-  $('#modalMusic').modal({
+  $('#modalMusic').removeData('bs.modal').modal({
     backdrop: isBGMusic || 'static',
     keyboard: false
   });
@@ -1102,7 +1102,7 @@ $(function() {
   });
 
   $('#btnRefreshMusicPicDir').click(function() {
-    var dirPath = appSettings.get('songsDir');
+    var dirPath = appSettings.get('musicPicDir');
     if (!isDirectorySync(dirPath)) {
       appSettings.set('musicPicDir', dirPath = undefined);
     }

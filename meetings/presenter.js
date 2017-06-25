@@ -34,40 +34,40 @@ const MEDIA_PRESENTERS = {
   },
   song: function({path, isBGMusic, lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, startPaused}) {
     if (isBGMusic) {
-      $('<div class="music-presenter-bg">')
-        .css({
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 0
-        })
-        .appendTo('body');
-      $('<div class="middler-wrap music-presenter"><div class="middler-table"><div class="middler-content"><div class="image">')
-        .css({
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 0
-        })
-        .appendTo('body');
-      $('<div class="music-presenter-details"><div class="time"></div><div class="song-title"></div></div>')
-        .css({
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 0
-        })
-        .appendTo('body');
       if (!$('body').is('.showing-background-music')) {
+        $('body, .body').addClass('showing-background-music');
+        $('<div class="music-presenter-bg">')
+          .css({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 0
+          })
+          .appendTo('body');
+        $('<div class="middler-wrap music-presenter"><div class="middler-table"><div class="middler-content"><div class="image">')
+          .css({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 0
+          })
+          .appendTo('body');
+        $('<div class="music-presenter-details"><div class="time"></div><div class="song-title"></div></div>')
+          .css({
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 0
+          })
+          .appendTo('body');
         changeSongImage();
       }
-      $('body, .body').addClass('showing-background-music');
     }
     else if (lyrics) {
       $('body, .body').addClass('showing-lyrics');
@@ -108,7 +108,7 @@ function changeSongImage() {
     var jMusicPresenterBG = $('.music-presenter-bg');
     var img = new Image();
     img.src = imagePath;
-    img.onload = function() {
+    img.onload = () => {
       jMusicPresenterBG.css('background-image', `url("${cssImagePath}")`);
       jMusicPresenter
         .find('.image')
@@ -164,7 +164,6 @@ function resizeMedia() {
   var jMusicPresenter = $('.music-presenter');
   if (jMusicPresenter[0]) {
     var jImage = jMusicPresenter.find('.image');
-    console.log({winWidth, winHeight, width:jImage.data('width'), height:jImage.data('height')});
     var {width, height} = fitInto(winWidth, winHeight, jImage.data('width'), jImage.data('height'));
     jImage.css({ width: width, height: height });
   }
@@ -215,7 +214,7 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
   var percentOffset = 0;
 
   function play() {
-    interval = setInterval(function() {
+    interval = setInterval(() => {
       var tsNow = +new Date();
       var secsPast = audio.currentTime + audio.duration * percentOffset / 100;
       if (secsPast >= secsDelay) {
@@ -238,7 +237,7 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
 
   play();
   
-  return function(action, value) {
+  return (action, value) => {
     if (interval == undefined && action != 'stop') {
       throw new Error('The song has already finished being shown.');
     }
@@ -250,7 +249,6 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
     }
     else if (action == 'offset') {
       percentOffset += value;
-      console.log({percentOffset});
     }
     else {
       throw new Error(`Unsupported action "${action}".`);
@@ -259,7 +257,10 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
 }
 
 ipcRenderer.on('present-media', function(event, mediaType) {
-  reset();
+  // Always reset unless this is a new song but the background music was already playing.
+  if (!(mediaType == 'song' && arguments[2].isBGMusic && $('body').is('.showing-background-music'))) {
+    reset();
+  }
 
   var caller = MEDIA_PRESENTERS[mediaType];
   if (caller) {
@@ -308,7 +309,7 @@ winPresenter.on('resize', () => {
 
 function fadeMusicOut() {
   audio.volume = 0.99;
-  var interval = setInterval(function() {
+  var interval = setInterval(() => {
     if (audio.volume >= 1 || audio.volume <= 0) {
       clearInterval(interval);
     }
@@ -317,7 +318,7 @@ function fadeMusicOut() {
 }
 
 function onReady() {
-  $('body').on('dblclick', function(e) {
+  $('body').on('dblclick', (e) => {
     e.preventDefault();
     // Toggle fullscreen mode on the browser window.
     winPresenter.setFullScreen(!winPresenter.isFullScreen());
@@ -327,13 +328,13 @@ function onReady() {
   });
 
   window.audio = audio = $('<audio>')
-    .on('ended', function() {
+    .on('ended', () => {
       winMain.webContents.send('ended-presenter-song');
       if (!$('body').is('.showing-background-music')) {
         showDefaultText();
       }
     })
-    .on('error', function() {
+    .on('error', () => {
       console.error('Error loading music:', { audio: audio, src: audio.src, arguments: arguments });
       winMain.webContents.send('ended-presenter-song');
       if (!$('body').is('.showing-background-music')) {
@@ -342,15 +343,13 @@ function onReady() {
     })
     [0];
 
-  setInterval(function() {
+  setInterval(() => {
     if ($('body').is('.showing-background-music')) {
       changeSongImage();
     }
-  }, 5000);
+  }, 7e3);
 
-  setInterval(function() {
-    $('.music-presenter-details > .time').text(JS.formatDate(new Date, 'h:mm:ss A'));
-  }, 500);
+  setInterval(() => $('.music-presenter-details > .time').text(JS.formatDate(new Date, 'h:mm:ss A')), 500);
 }
 
 $(onReady);
