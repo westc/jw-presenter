@@ -51,6 +51,72 @@ module.exports = {
       "type": "url"
     },
     {
+      "id": "parse-bible-books-page",
+      "name": "Parse Online JW Library Bible Books Page",
+      "value": "var result = {}, jMaster = jQuery(html);\n[\n  { sel: '.hebrew, .hebrewOnly', id: 'hebrew', count: 39 },\n  { sel: '.greek, .greekOnly', id: 'greek', count: 27 }\n].forEach(({ sel, id, count}) => {\n  jMaster.find(`.bible .books:not(:not(${sel}))`).each((i, elem) => {\n    var hebrewTitle = jQuery('.group:eq(0)', elem).text();\n    var anchors = jQuery('a[data-bookid]:not(:has(a[data-bookid]))', elem).toArray();\n    if (hebrewTitle && anchors.length == count) {\n      var lastURL = anchors[anchors.length - 1].href;\n      result[id] = {\n        title: hebrewTitle,\n        names: anchors.map(a => jQuery('.name', a).text()),\n        abbreviations: anchors.map(a => jQuery('.abbreviation', a).text()),\n        urls: anchors.map((a, i) => lastURL.replace(/\\b(39|66)\\b/, i + (count == 39 ? 1 : 40)))\n      };\n    }\n  });\n});\nreturn result;",
+      "type": "function",
+      "arguments": [
+        {
+          "name": "html",
+          "type": "string",
+          "text": "HTML of the Bible books page found on the online JW Library."
+        }
+      ],
+      "return": {
+        "type": "{greek: {title: string, urls: Array<string>, names: Array<string>, abbreviations: Array<string>}, hebrew: {title: string, urls: Array<string>, names: Array<string>, abbreviations: Array<string>}}",
+        "text": "Object conditionally containing a `hebrew` property outlining the hebrew scriptures' books and a `greek` property outlining the greek scriptures' books."
+      }
+    },
+    {
+      "id": "parse-bible-book-page",
+      "name": "Parse Online JW Library Bible Book Page",
+      "value": "return jQuery(html).find('.bible .chapters .chapter a[href]:not(:has(a[href]))').toArray().map(a => a.href);",
+      "type": "function",
+      "arguments": [
+        {
+          "name": "html",
+          "type": "string",
+          "text": "HTML of the Bible book page found on the online JW Library."
+        },
+        {
+          "name": "bookNumber",
+          "type": "number",
+          "text": "The number of the book (1 being Genesis, 66 being Revelation, etc.)."
+        }
+      ],
+      "return": {
+        "type": "Array<string>",
+        "text": "Array of the URLs for all of the chapters in the specified Bible book."
+      }
+    },
+    {
+      "id": "parse-bible-chapter-page",
+      "name": "Parse Online JW Library Bible Chapter Page",
+      "value": "return jQuery(html).find(`.v[id^=v${bookNumber}-${chapterNumber}-]`).toArray().reduce(function(verses, elem) {\n  var text = $(elem).clone().find('*').remove().end().text().trim();\n  if (!/-0-\\d$/.test(elem.id)) {\n    if (/-1$/.test(elem.id)) {\n      verses.push(text);\n    }\n    else {\n      verses[verses.length - 1] += '\\n' + text;\n    }\n  }\n  return verses;\n}, []);",
+      "type": "function",
+      "arguments": [
+        {
+          "name": "html",
+          "type": "string",
+          "text": "HTML of the Bible chapter page found on the online JW Library."
+        },
+        {
+          "name": "bookNumber",
+          "type": "number",
+          "text": "The number of the book (1 being Genesis, 66 being Revelation, etc.)."
+        },
+        {
+          "name": "chapterNumber",
+          "type": "number",
+          "text": "The number of the chapter (starting at 1)."
+        }
+      ],
+      "return": {
+        "type": "Array<string>",
+        "text": "Array of the URLs for all of the chapters in the specified Bible book."
+      }
+    },
+    {
       "id": "parse-jw-library-languages-page",
       "name": "Parse Online JW Library Languages Page",
       "value": "return $(html).find('.completeList a[data-rsconf][data-lib]').map(function(i, e) {\n  var j = $(e), jLang = j.find('[lang]');\n  return {\n    rsconf: j.data('rsconf'),         // eg. \"r5\"\n    lib: j.data('lib'),               // eg. \"lp-t\"\n    name: jLang.eq(0).text().trim(),  // eg. \"Portuguese\"\n    lang: jLang.eq(1).text().trim()   // eg. \"Português\"\n  };\n}).toArray();",

@@ -287,7 +287,15 @@ function recurseDirSync(currentDirPath, depthLeft, opt_filter) {
 }
 
 function loadSettings() {
-  var properties = appSettings.get('properties', []).sort(({ name: name1 }, { name: name2 }) => JS.compare(name1, name2));
+  var properties = appSettings.get('properties', []);
+  var propsByID = JS.indexBy(properties, 'id');
+  jQuery.extend(true, {}, DEFAULT_SETTINGS).properties.forEach(function(prop) {
+    if (!JS.has(propsByID, prop.id)) {
+      console.warn(`Adding "${prop.id}" property from default settings:`, prop);
+      properties.push(prop);
+    }
+  });
+  properties = properties.sort((prop1, prop2) => JS.compare(prop1.name, prop2.name));
   appSettings.set('properties', properties);
   JS.walk(properties, function(prop, i) {
     $('#propsList').append(JS.dom({
