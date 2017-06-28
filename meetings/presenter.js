@@ -11,13 +11,16 @@ const markdown = new (require('showdown').Converter);
 const MEDIA_PRESENTERS = {
   image: function(cleanPath, details) {
     ({width: mediaWidth, height: mediaHeight} = details);
-    $('.middler-content').append(media = JS.dom({ _: 'img', src: cleanPath }));
+
+    appendMiddler(media = JS.dom({ _: 'img', src: cleanPath }), 'showing-image');
+
     resizeMedia();
   },
   video: function(cleanPath, details) {
     ({width: mediaWidth, height: mediaHeight} = details);
-    $('.middler-content')
-      .append(media = JS.dom({
+
+    appendMiddler(
+      media = JS.dom({
         _: 'video',
         src: cleanPath,
         onended() {
@@ -25,55 +28,33 @@ const MEDIA_PRESENTERS = {
           showDefaultText();
         },
         currentTime: details.time
-      }));
+      }),
+      'showing-video'
+    );
+
     resizeMedia();
+
     if (!details.paused) {
       media.play();
     }
   },
   text: function(strText) {
-    $('.middler-content:eq(0)').html(markdown.makeHtml(strText));
+    appendMiddler(markdown.makeHtml(strText), 'showing-text');
   },
-  song: function({path, isBGMusic, lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, startPaused}) {
+  song: function({path, isBGMusic, lyrics: lyricsData, imagePaths, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, startPaused}) {
     if (isBGMusic) {
-      if (!$('body').is('.showing-background-music')) {
-        $('body, .body').addClass('showing-background-music');
-        $('<div class="music-presenter-bg">')
-          .css({
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 0
-          })
-          .appendTo('body');
-        $('<div class="middler-wrap music-presenter"><div class="middler-table"><div class="middler-content"><div class="image">')
-          .css({
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 0
-          })
-          .appendTo('body');
-        $('<div class="music-presenter-details"><div class="time"></div><div class="song-title"></div></div>')
-          .css({
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 0
-          })
-          .appendTo('body');
-        changeSongImage();
+      if (!$('.body.active').is('.showing-background-music')) {
+        appendBGMusicPresenter('showing-song showing-background-music');
+        songImagePaths = JS.randomize(imagePaths);
+        if (songImagePaths.length) {
+          changeSongImage();
+        }
       }
     }
-    else if (lyrics) {
-      $('body, .body').addClass('showing-lyrics');
-      lyricsControl = showSongLyrics(lyrics, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, () => showDefaultText());
+    else if (lyricsData) {
+      var jBody = appendSongLyrics(lyricsData, 'showing-song showing-lyrics');
+      console.log({jBody});
+      lyricsControl = showSongLyrics(jBody, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, () => showDefaultText());
     }
 
     audio.pause();
@@ -88,46 +69,168 @@ const MEDIA_PRESENTERS = {
 
 var media, mediaWidth, mediaHeight, objDefaultText, lyricsControl, songImagePaths, audio;
 
-function showDefaultText(opt_avoidReset) {
-  if (!opt_avoidReset) {
-    reset();
-  }
-  
-  $('body, .body').addClass('showing-default-text showing-text');
-  $('.middler-content:eq(0)').html(markdown.makeHtml(JS.get(objDefaultText, 'text', '')));
+function appendBody(contents, bodyClassName) {
+  return $(`<div class="body active ${bodyClassName}"></div>`)
+    .css({
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: '9',
+      opacity: '0',
+      overflow: 'hidden'
+    })
+    .fadeTo(500, 1)
+    .append(contents)
+    .appendTo('body');
+}
+
+function appendMiddler(contents, bodyClassName) {
+  return appendBody(
+    `
+      <div class="middler-wrap">
+        <div class="middler-content"></div>
+      </div>
+    `,
+    bodyClassName
+  )
+    .find('.middler-wrap')
+      .css({
+        display: 'table',
+        width: '100%',
+        height: '100%'
+      })
+      .find('.middler-content')
+        .css({
+          display: 'table-cell',
+          textAlign: 'center',
+          verticalAlign: 'middle'
+        })
+        .append(contents)
+        .end()
+      .end();
+}
+
+function appendBGMusicPresenter(bodyClassName) {
+  return appendBody(
+    `
+      <div class="music-presenter-bg"></div>
+      <div class="music-presenter middler-wrap">
+        <div class="middler-content">
+          <div class="image"></div>
+        </div>
+      </div>
+      <div class="music-presenter-details">
+        <div class="time"></div>
+        <div class="song-title"></div>
+      </div>
+    `,
+    bodyClassName
+  )
+    .find('.music-presenter-bg')
+      .css({
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 0
+      })
+      .end()
+    .find('.music-presenter-details')
+      .css({
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 0
+      })
+      .end()
+    .find('.middler-wrap')
+      .css({
+        display: 'table',
+        width: '100%',
+        height: '100%'
+      })
+      .find('.middler-content')
+        .css({
+          display: 'table-cell',
+          textAlign: 'center',
+          verticalAlign: 'middle'
+        })
+        .end()
+      .end();
+}
+
+function appendSongLyrics({heading, title, theme, stanzas}, bodyClassName) {
+  return appendBody(
+    `
+      <div class="song-wrap">
+        <div class="heading-wrap">
+          <div class="song-number"></div>
+          <div class="title"></div>
+          <div class="theme-text"></div>
+        </div>
+        <div class="lyrics-table"></div>
+      </div>
+    `,
+    bodyClassName
+  )
+    .find('.song-number').text(heading).end()
+    .find('.title').text(title).end()
+    .find('.theme').text(theme).end()
+    .find('.lyrics-table')
+      .css('fontSize', '100vw')
+      .append(
+        stanzas.map((lines, i) =>
+          $('<div class="stanza"></div>').append(
+            $('<div class="number-cell"></div>').text(`${i+1}.`),
+            $('<div class="lines-cell"></div>').append(
+              lines.map((line, i) => $('<div class="line"></div>').css('paddingLeft', `${i&&(i%2+1)}em`).text(line))
+            )
+          )
+        )
+      )
+      .end();
+}
+
+function showDefaultText() {
+  reset();
+
+  appendMiddler(
+    markdown.makeHtml(JS.get(objDefaultText, 'text', '')),
+    'showing-default-text showing-text'
+  );
 }
 
 function changeSongImage() {
-  if (JS.get(songImagePaths, 'length')) {
-    var imagePath = songImagePaths.pop();
-    songImagePaths.unshift(imagePath);
+  var imagePath = songImagePaths.pop();
+  songImagePaths.unshift(imagePath);
 
-    // On Windows the backslash needs to be doubly escaped:
-    // http://cwestblog.com/2017/06/16/css-local-file-system-paths-on-windows/
-    var cssImagePath = imagePath.replace(/\\/g, '\\\\');
+  // On Windows the backslash needs to be doubly escaped:
+  // http://cwestblog.com/2017/06/16/css-local-file-system-paths-on-windows/
+  var cssImagePath = imagePath.replace(/\\/g, '\\\\');
 
-    var jMusicPresenter = $('.music-presenter');
-    var jMusicPresenterBG = $('.music-presenter-bg');
-    var img = new Image();
-    img.src = imagePath;
-    img.onload = () => {
-      jMusicPresenterBG.css('background-image', `url("${cssImagePath}")`);
-      jMusicPresenter
-        .find('.image')
-          .css({
-            backgroundImage: `url("${cssImagePath}")`,
-            display: 'inline-block',
-            backgroundSize: 'contain',
-            transform: `rotate(${JS.random(0, 2, true) * 360}deg)`
-          })
-          .data('width', img.width)
-          .data('height', img.height);
-      resizeMedia();
-    };
-  }
-  else {
-    showDefaultText(true);
-  }
+  var jMusicPresenter = $('.body.active .music-presenter');
+  var jMusicPresenterBG = $('.body.active .music-presenter-bg');
+  var img = new Image();
+  img.src = imagePath;
+  img.onload = () => {
+    jMusicPresenterBG.css('background-image', `url("${cssImagePath}")`);
+    jMusicPresenter
+      .find('.image')
+        .css({
+          backgroundImage: `url("${cssImagePath}")`,
+          display: 'inline-block',
+          backgroundSize: 'contain',
+          transform: `rotate(${JS.random(0, 2, true) * 360}deg)`
+        })
+        .data('width', img.width)
+        .data('height', img.height);
+    resizeMedia();
+  };
 }
 
 function readFileJSON(filePath) {
@@ -136,24 +239,26 @@ function readFileJSON(filePath) {
 }
 
 function reset() {
-  if (lyricsControl && $('body').is('.showing-lyrics')) {
+  var jActiveBody = $('.body.active');
+
+  if (lyricsControl && jActiveBody.is('.showing-lyrics')) {
     lyricsControl('stop');
     lyricsControl = null;
   }
 
-  if ($('body').is('.showing-background-music')) {
-    var j = $('.music-presenter-bg, .music-presenter, .music-presenter-details').fadeTo(500, 0, () => j.remove());
+  if (jActiveBody.is('.showing-background-music')) {
     fadeMusicOut();
   }
   else {
     audio.pause();
   }
 
-  media = null;
-  $('body, .body')
-    .removeClass('showing-media showing-text showing-default-text showing-video showing-image showing-lyrics showing-background-music showing-song')
-    .css('background-image', '');
-  $('.middler-content').html('');
+  if (media) {
+    media.pause && media.pause();
+    media = null;
+  }
+
+  jActiveBody.removeClass('active').fadeTo(500, 0, () => jActiveBody.remove());
 }
 
 function resizeMedia() {
@@ -163,7 +268,7 @@ function resizeMedia() {
     JS.extend(media.style, { width: `${width}px`, height: `${height}px` });
   }
 
-  var jMusicPresenter = $('.music-presenter');
+  var jMusicPresenter = $('.body.active .music-presenter');
   if (jMusicPresenter[0]) {
     var jImage = jMusicPresenter.find('.image');
     var {width, height} = fitInto(winWidth, winHeight, jImage.data('width'), jImage.data('height'));
@@ -187,24 +292,8 @@ function fitInto(desiredWidth, desiredHeight, actualWidth, actualHeight) {
   return { width: desiredWidth, height: desiredHeight };
 }
 
-function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, onEnd) {
-  var jWrap = $('<div class="song-wrap"></div>').appendTo('body').append(
-        $('<div class="heading-wrap"></div>').append(
-          $('<div class="song-number"></div>').text(heading),
-          $('<div class="title"></div>').text(title),
-          $('<div class="theme-text"></div>').text(theme)
-        ),
-        $('<div class="lyrics-table"></div>').css('fontSize', '100vw').append(
-          stanzas.map((lines, i) =>
-            $('<div class="stanza"></div>').append(
-              $('<div class="number-cell"></div>').text(`${i+1}.`),
-              $('<div class="lines-cell"></div>').append(
-                lines.map((line, i) => $('<div class="line"></div>').css('paddingLeft', `${i&&(i%2+1)}em`).text(line))
-              )
-            )
-          )
-        )
-      ).css('opacity', 0).fadeTo(1000, 1),
+function showSongLyrics(jBody, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, onEnd) {
+  var jWrap = jBody.find('.song-wrap:eq(0)'),
       jTable = jWrap.find('.lyrics-table:eq(0)'),
       jLine = jTable.find('.line:eq(0)');
   
@@ -224,6 +313,7 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
         var fullDistance = jWrap.outerHeight() - jLine.outerHeight() * linesToShowAtEnd;
         jWrap.css('top', -percent * fullDistance);
         if (secsPast >= secsDuration) {
+          console.log({secsPast,secsDuration});
           stop('ended');
         }
       }
@@ -233,7 +323,7 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
   function stop(type) {
     clearInterval(interval);
     interval = undefined;
-    jWrap.remove();
+    jBody.remove();
     onEnd && onEnd('ended');
   }
 
@@ -260,13 +350,12 @@ function showSongLyrics({heading, title, theme, stanzas}, linesToShowAtEnd, secs
 
 ipcRenderer.on('present-media', function(event, mediaType) {
   // Always reset unless this is a new song but the background music was already playing.
-  if (!(mediaType == 'song' && arguments[2].isBGMusic && $('body').is('.showing-background-music'))) {
+  if (!(mediaType == 'song' && arguments[2].isBGMusic && $('.body.active').is('.showing-background-music'))) {
     reset();
   }
 
   var caller = MEDIA_PRESENTERS[mediaType];
   if (caller) {
-    $('body, .body').addClass(`showing-media showing-${mediaType}`);
     caller.apply(this, JS.slice(arguments, 2));
   }
   else {
@@ -279,8 +368,9 @@ ipcRenderer.on('update-song-images', (event, arrOfPaths) => {
 });
 
 ipcRenderer.on('update-default-text', (event, objNewDefaultText) => {
+  var jActiveBody = $('.body.active');
   objDefaultText = objNewDefaultText;
-  if ($('body').is(':not(.showing-media)')) {
+  if (!jActiveBody[0] || jActiveBody.is('.showing-default-text')) {
     showDefaultText();
   }
 });
@@ -336,31 +426,31 @@ function onReady() {
   window.audio = audio = $('<audio>')
     .on('ended', () => {
       winMain.webContents.send('ended-presenter-song');
-      if (!$('body').is('.showing-background-music')) {
+      if (!$('.body.active').is('.showing-background-music')) {
         showDefaultText();
       }
     })
     .on('error', () => {
       console.error('Error loading music:', { audio: audio, src: audio.src, arguments: arguments });
       winMain.webContents.send('ended-presenter-song');
-      if (!$('body').is('.showing-background-music')) {
+      if (!$('.body.active').is('.showing-background-music')) {
         showDefaultText();
       }
     })
     [0];
 
   setInterval(() => {
-    if ($('body').is('.showing-background-music')) {
+    if ($('.body.active').is('.showing-background-music')) {
       changeSongImage();
     }
   }, 7e3);
 
   setInterval(() => {
-    var classList = $('body')[0].classList;
-    if (classList.contains('showing-background-music')) {
+    var jActiveBody = $('.body.active');
+    if (jActiveBody.hasClass('showing-background-music')) {
       $('.music-presenter-details > .time').text(JS.formatDate(new Date, 'h:mm:ss A'));
     }
-    else if (classList.contains('showing-video') && !media.paused) {
+    else if (jActiveBody.hasClass('showing-video') && !media.paused) {
       winMain.webContents.send('playing-video', media.currentTime);
     }
   }, 500);

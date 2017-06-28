@@ -30,6 +30,7 @@ var textEditor, propCodeEditor;
 
 var translations,
     lastSongIndex,
+    musicImagesPaths = [],
     songs = [],
     resizers = [];
 
@@ -518,6 +519,7 @@ function playSongAt(songIndex, isBGMusic, opt_lyricsIndex, opt_startPaused) {
     isBGMusic: isBGMusic,
     lyrics: lyricsData,
     linesToShowAtEnd: 3,
+    imagePaths: musicImagesPaths,
     secsDuration: song.duration,
     secsDelay: 12,
     secsToEndEarly: 2,
@@ -674,18 +676,18 @@ function showSongsList() {
 function setMusicPicDir(dirPath) {
   $('#txtMusicPicDir').val(dirPath);
 
-  var picPaths = [];
+  musicImagesPaths = [];
 
   if (dirPath) {
     recurseDirSync(dirPath, 3, function(filePath, isFile, stat) {
       if (isFile && !path.basename(filePath).startsWith('.') && /\.(?:png|jpe?g|gif)$/i.test(filePath)) {
-        picPaths.push(filePath);
+        musicImagesPaths.push(filePath);
       }
       return !isFile && !/^\./.test(path.basename(filePath));
     });
   }
 
-  winPresenter.webContents.send('update-song-images', picPaths);
+  winPresenter.webContents.send('update-song-images', musicImagesPaths);
 }
 
 function setDisplayDir(dirPath) {
