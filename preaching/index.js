@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const {dialog, app} = require('electron').remote;
+const {dialog, app, shell} = require('electron').remote;
 const DEFAULT_SETTINGS = require('./default-settings');
 
 const USER_DATA_PATH = app.getPath('userData');
@@ -493,6 +493,9 @@ function showVids(files) {
                 $(div).find('.title-text').text(file.vid.title = jModal.find('#txtVidTitle').val());
                 updateVideoDetails($('.video-details', div), file);
                 file.saveIndex();
+              }).end()
+              .find('.btn-show-in-folder').unbind('click').click(function() {
+                shell.showItemInFolder(file.path);
               }).end()
               .find('.keyword-form-group').removeClass('has-error')
                 .find('.text-keyword').val('').end()
