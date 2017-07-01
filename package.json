@@ -6,19 +6,40 @@
   "main": "app.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-packager .",
-    "build-mac": "electron-packager . --platform=darwin --arch=x64 --prune=true --out=builds --overwrite --ignore=\"/builds|\\.gitignore\" --icon=\"assets/icons/JWPresenter.icns\"",
-    "build-win": "electron-packager . --platform=win32 --arch=x64 --prune=true --out=builds --overwrite --ignore=\"/builds|\\.gitignore\" --icon=\"assets/icons/JWPresenter.ico\""
+    "dist-test": "electron-builder --dir",
+    "dist": "electron-builder"
   },
-  "repository": "https://github.com/westc/jw-presenter",
-  "author": "Christopher West (http://cwestify.com/)",
+  "author": {
+    "name": "Christopher West",
+    "url": "http://cwestify.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/westc/jw-presenter.git"
+  },
   "license": "ISC",
   "dependencies": {
     "musicmetadata": "^2.0.5",
-    "showdown": "^1.6.4"
+    "showdown": "^1.6.4",
+    "electron-updater": "^2.4.3"
   },
   "devDependencies": {
     "electron": "^1.6.6",
-    "electron-packager": "^8.7.0"
+    "electron-builder": "^19.11.1"
+  },
+  "build": {
+    "appId": "com.westc.jwpresenter",
+    "mac": {
+      "target": [
+        "zip"
+      ],
+      "icon": "assets/icons/JWPresenter.icns"
+    },
+    "win": {
+      "target": [
+        "zip"
+      ],
+      "icon": "assets/icons/JWPresenter.ico"
+    }
   }
 }

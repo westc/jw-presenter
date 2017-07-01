@@ -35,4 +35,4 @@ jspm_packages
 
 .DS_Store
 
-/builds
+/dist

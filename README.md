@@ -13,12 +13,7 @@ Application designed by/for Jehovah's Witnesses for seamlessly presenting media 
 1. Clone this repository locally.
 1. Open up a command-line window and change the current directory to the main directory of the cloned repository.
 1. Run `npm install` to install the dependencies on your machine.
-1. Run `npm run build-mac` to build the Mac 64-bit version of this app locally.
-   1. Once done a new directory will have been created in the main repository directory called "JW-Presenter_For_Mac64".
-   1. The underlying .app file can be put into a Mac 64-bit "/Applications/" folder.
-1. Run `npm run build-win` to build the Windows 64-bit version of this app locally.
-   1. Once done a new directory will have been created in the main repository directory called "JW-Presenter_For_Win64".
-   1. The underlying folder within this new folder can be put into a Windows 64-bit "C:/Program Files" (or "C:/Program Files (x86)") folder.
+1. Run `npm run dist` to build the Mac & Windows versions of this app locally.  Once done a new directory will have been created in the main repository directory called "dist" containing the apps in ZIP files.
 
 ## Launcher
 When opening **JW Presenter** the following screen will be shown:

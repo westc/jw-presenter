@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const {app, BrowserWindow, Menu, shell, powerSaveBlocker, ipcMain} = require('electron');
-const JS = require('./YourJS/JS.js');
+const JS = require('./YourJS/JS');
 
 const IS_MAC = /^darwin/.test(os.platform());
 
@@ -226,12 +226,6 @@ ipcMain.on('start-meetings-app', () => {
         {
           label: 'View',
           submenu: [
-            // {
-            //   label: 'Reload',
-            //   accelerator: 'CmdOrCtrl+R',
-            //   role: 'reload'
-            // },
-            // { type: 'separator' },
             {
               label: 'Toggle Dev Tools',
               accelerator: 'CmdOrCtrl+Alt+I',
