@@ -7,7 +7,9 @@
   "scripts": {
     "start": "electron .",
     "dist-test": "electron-builder --dir",
-    "dist": "electron-builder"
+    "build-all": "electron-builder --mac --win",
+    "build-mac": "electron-builder --mac",
+    "build-win": "electron-builder --win"
   },
   "author": {
     "name": "Christopher West",
