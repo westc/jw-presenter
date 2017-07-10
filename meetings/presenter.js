@@ -53,7 +53,6 @@ const MEDIA_PRESENTERS = {
     }
     else if (lyricsData) {
       var jBody = appendSongLyrics(lyricsData, 'showing-song showing-lyrics');
-      console.log({jBody});
       lyricsControl = showSongLyrics(jBody, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, () => showDefaultText());
     }
 
@@ -180,7 +179,7 @@ function appendSongLyrics({heading, title, theme, stanzas}, bodyClassName) {
   )
     .find('.song-number').text(heading).end()
     .find('.title').text(title).end()
-    .find('.theme').text(theme).end()
+    .find('.theme-text').text(theme).end()
     .find('.lyrics-table')
       .css('fontSize', '100vw')
       .append(
@@ -313,7 +312,6 @@ function showSongLyrics(jBody, linesToShowAtEnd, secsDuration, secsDelay, secsTo
         var fullDistance = jWrap.outerHeight() - jLine.outerHeight() * linesToShowAtEnd;
         jWrap.css('top', -percent * fullDistance);
         if (secsPast >= secsDuration) {
-          console.log({secsPast,secsDuration});
           stop('ended');
         }
       }

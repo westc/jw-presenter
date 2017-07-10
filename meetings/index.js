@@ -80,6 +80,7 @@ var appSettings = {
 
 ipcRenderer.on('ended-presenter-video', (event) => {
   $('.btn.show-video').removeClass('active');
+  $('#modalVideo').modal('hide');
 });
 
 ipcRenderer.on('playing-video', (event, currentTime) => {
@@ -539,10 +540,12 @@ function playSongAt(songIndex, isBGMusic, opt_lyricsIndex, opt_startPaused) {
   $('#txtMusicTitle').val(song.title);
   $('#txtMusicDuration').val(formatTime(~~song.duration));
 
-  $('#modalMusic').removeData('bs.modal').modal({
-    backdrop: isBGMusic || 'static',
-    keyboard: false
-  });
+  if (!$('#modalMusic').is(':visible')) {
+    $('#modalMusic').removeData('bs.modal').modal({
+      backdrop: isBGMusic || 'static',
+      keyboard: false
+    });
+  }
 }
 
 // Pass true to show play button and false to show pause button or pass nothing
