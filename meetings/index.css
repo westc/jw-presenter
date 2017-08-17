@@ -50,21 +50,21 @@ html, body {
   height: 100%;
   width: 100%;
 }
-#displayPanel .list-item {
+.display-panel .list-item {
   padding: 5px;
   border-radius: 5px;
   box-shadow: 0 0 5px #000;
   margin: 5px;
 }
 
-#displayPanel .list-item-wrap {
+.display-panel .list-item-wrap {
   width: 100%;
 }
 
-#displayPanel .image-wrap > div {
+.display-panel .image-wrap > div {
   margin-right: 5px;
 }
-#displayPanel .image-wrap .presenter-aspect-ratio-wrap > .content {
+.display-panel .image-wrap .presenter-aspect-ratio-wrap > .content {
   box-shadow: 0 0 2px #000;
   background-color: #000;
   background-size: contain;
@@ -86,12 +86,12 @@ html, body {
   overflow: hidden;
 }
 
-#displayPanel .content-wrap {
+.display-panel .content-wrap {
   vertical-align: top;
   width: 99%;
 }
 
-#displayPanel .content-wrap > .title {
+.display-panel .content-wrap > .title {
   font-size: 1.25em;
   font-weight: bold;
   text-decoration: underline;
@@ -152,4 +152,42 @@ progress::-webkit-progress-value {
 
 .btn-primary {
   text-shadow: 0 1px 0 rgba(255,255,255,0.375);
+}
+
+#displayBibleWrap h3 {
+    text-align: center;
+    text-shadow:
+        -0.05em -0.05em 0.1em #FFF,
+        0em 0em 0.2em #000;
+}
+#displayBibleWrap > ul {
+    list-style: none;
+    padding: 0 1em;
+    text-align: center;
+}
+#displayBibleWrap > ul > li.color1 {
+    --bgcolor: #08F;
+}
+#displayBibleWrap > ul > li.color2 {
+    --bgcolor: #06B;
+}
+#displayBibleWrap > ul > li.color3 {
+    --bgcolor: #047;
+}
+#displayBibleWrap > ul > li {
+    display: inline-block;
+    background-color: var(--bgcolor);
+    color: #FFF;
+    padding: 0.75em;
+    margin: 0.25em;
+    border-radius: 0.25em;
+    box-shadow:
+        0 0 0.125em #000,
+        inset 0 0 0 0.25em var(--bgcolor),
+        inset 0 0 1em #000;
+    cursor: pointer;
+    transition: 0.5s ease all;
+}
+#displayBibleWrap > ul > li:hover {
+    transform: scale(1.3, 1.3);
 }

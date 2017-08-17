@@ -1,17 +1,14 @@
-const fs = require('fs');
-const path = require('path');
-const electron = require('electron');
+const [fs, path, electron, mm, showdown, DEFAULT_SETTINGS] = ['fs-extra', 'path', 'electron', 'musicmetadata', 'showdown', './default-settings'].map(require);
 const { ipcRenderer, remote } = electron;
 const { dialog, BrowserWindow, shell, app } = remote;
-const mm = require('musicmetadata');
-const markdown = new (require('showdown').Converter);
-const DEFAULT_SETTINGS = require('./default-settings');
+const markdown = new showdown.Converter();
 
 const { presenter: winPresenter, main: winMain } = JS.indexBy(BrowserWindow.getAllWindows(), 'name');
 
 const USER_DATA_PATH = app.getPath('userData');
 const USER_LYRICS_PATH = path.join(USER_DATA_PATH, 'meetings-lyrics.json');
 const USER_SETTINGS_PATH = path.join(USER_DATA_PATH, 'meetings-settings.json');
+const USER_WOL_LANGUAGES_PATH = path.join(USER_DATA_PATH, 'wol-languages.json');
 
 const THUMB_WIDTH = 300;
 
@@ -28,11 +25,13 @@ const isDirectorySync = pathToCheck => (fs.existsSync(pathToCheck) || undefined)
 
 var textEditor, propCodeEditor;
 
-var translations,
+var bibleVue,
+    translations,
     lastSongIndex,
     musicImagesPaths = [],
     songs = [],
-    resizers = [];
+    resizers = [],
+    songTitlesToLyricsIndex = {};
 
 var appSettings = {
   _onSavers: [],
@@ -90,6 +89,46 @@ ipcRenderer.on('playing-video', (event, currentTime) => {
 
 ipcRenderer.on('ended-presenter-song', onMusicEnd);
 
+function getAppProp(id) {
+  return JS.indexBy(appSettings.get('properties', {}), 'id')[id];
+}
+
+function listWOLLangs() {
+  fs.readJson(USER_WOL_LANGUAGES_PATH, function(err, arrLangs) {
+    if (!err) {
+      var prevLocale = appSettings.get('wolLang');
+      $('#selWOLLangs')
+        .html('')
+        .append(arrLangs.sort((a, b) => JS.compare(a.name, b.name)).map((lang) => JS.dom({
+          _: 'option',
+          text: `${lang.lang} - ${lang.name}`,
+          value: lang.locale,
+          selected: prevLocale == lang.locale
+        })));
+      showWOLContent();
+    }
+  });
+}
+
+function showWOLContent() {
+  var lang = $('#selWOLLangs').val();
+  var biblePath = path.join(USER_DATA_PATH, `bible-${lang}`);
+  var indexPath = path.join(biblePath, 'index.json');
+  JS.extend(bibleVue, {
+    hebrew: {},
+    greek: {}
+  });
+  if (isDirectorySync(biblePath) && isFileSync(indexPath)) {
+    var data = fs.readJsonSync(indexPath, {encoding: 'utf8'});
+    if (data.hebrew) {
+      bibleVue.hebrew = data.hebrew;
+    }
+    if (data.greek) {
+      bibleVue.greek = data.greek;
+    }
+  }
+}
+
 function updatePresenterCSS(code) {
   winPresenter.webContents.send('update-presenter-css', code);
   var style = $('#presenterStyle')[0];
@@ -123,7 +162,7 @@ winPresenter.on('resize', JS(function() {
   var [width, height] = winPresenter.getContentSize();
   updateCssRule(
     `
-      #displayPanel .image-wrap > div {
+      .display-panel .image-wrap > div {
         width: ${THUMB_WIDTH}px;
       }
     `,
@@ -239,7 +278,7 @@ function getVideoImage(videoPath, secs, callback) {
     }
     this.currentTime = Math.min(Math.max(0, (secs < 0 ? this.duration : 0) + secs), this.duration);
   };
-  video.onseeked = function(e) {
+  video.onseeked = function(event) {
     var canvas = document.createElement('canvas');
     canvas.height = video.videoHeight;
     canvas.width = video.videoWidth;
@@ -247,10 +286,10 @@ function getVideoImage(videoPath, secs, callback) {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     var img = new Image();
     img.src = canvas.toDataURL();
-    callback.call(me, img, this.currentTime, e);
+    callback.call(me, img, {path: videoPath, currentTime: this.currentTime, duration: this.duration, event: event});
   };
-  video.onerror = function(e) {
-    callback.call(me, undefined, undefined, e);
+  video.onerror = function(event) {
+    callback.call(me, undefined, {path: videoPath, event: event});
   };
   video.src = videoPath.replace(/\?/g, '%3F');
 }
@@ -322,6 +361,7 @@ function loadSettings() {
 
     if (prop.id == 'translations') {
       fillInTranslations(prop.value);
+      removeOldTranslations(prop.value, JS.indexBy(DEFAULT_SETTINGS.properties, 'id').translations.value);
     }
   });
 
@@ -360,6 +400,19 @@ function loadSettings() {
     appSettings.set('texts', texts = [{ name: 'Year Text', text: '' }]);
   }
   texts.forEach((text, i) => addTextToList(text, i, !i));
+
+  listWOLLangs();
+}
+
+function removeOldTranslations(userTrans, defaultTrans) {
+  var defaultKeys = JS(defaultTrans).indexBy('id').map((v,k) => true).$;
+  for (var i = userTrans.length; i-- > 0;) {
+    if (!defaultKeys.hasOwnProperty(userTrans[i].id)) {
+      console.warn(`Removing the "${userTrans[i].id}" translation:`, userTrans[i]);
+      userTrans.splice(i, 1);
+    }
+  }
+  appSettings.save();
 }
 
 function fillInTranslations(values) {
@@ -368,12 +421,12 @@ function fillInTranslations(values) {
     return carry;
   }, {});
   fillInTranslationFor('music-tab', '#tdWrapAllTabs [aria-controls=musicPanel]');
-  fillInTranslationFor('display-tab', '#tdWrapAllTabs [aria-controls=displayPanel]');
   fillInTranslationFor('settings-tab', '#tdWrapAllTabs [aria-controls=settingsPanel]');
   fillInTranslationFor('bg-music-button', '#btnBGMusic');
-  fillInTranslationFor('images-panel', '#collapseImagesHeader a');
-  fillInTranslationFor('videos-panel', '#collapseVideosHeader a');
-  fillInTranslationFor('display-texts-panel', '#collapseDisplayTextsHeader a');
+  fillInTranslationFor('display-images-tab', '[aria-controls=displayImagesPanel]');
+  fillInTranslationFor('display-videos-tab', '[aria-controls=displayVideosPanel]');
+  fillInTranslationFor('display-bible-tab', '[aria-controls=displayBiblePanel]');
+  fillInTranslationFor('display-texts-tab', '[aria-controls=displayTextsPanel]');
   fillInTranslationFor('display-directory-button', '.js-btn-set-media-dir');
   fillInTranslationFor('directories-panel', '#collapseHeaderDirs a');
   fillInTranslationFor('settings-texts-panel', '#collapseTextHeading a');
@@ -436,7 +489,7 @@ function addTextToList(text, i, selectIt) {
     }
   }));
 
-  setDisplayTextListItem($('<div class="list-item">').appendTo('#collapseDisplayTexts > .panel-body'), text, i);
+  setDisplayTextListItem($('<div class="list-item">').appendTo('#displayTextsWrap'), text, i);
 
   if (selectIt) {
     selectText(text, i);
@@ -577,7 +630,7 @@ function unpressActiveMediaButtons() {
 }
 
 function showSongsList() {
-  var songTitlesToLyricsIndex = {};
+  songTitlesToLyricsIndex = {};
   try {
     function testSongMatchAt(songIndex, lyricsIndex) {
       var song = songs[songIndex];
@@ -704,32 +757,37 @@ function setMusicPicDir(dirPath) {
 function setDisplayDir(dirPath) {
   $('.js-txt-media-dir').val(dirPath);
 
-  $('#collapseImages, #collapseVideos').find('> .panel-body').html('');
+  $('#displayImagesWrap, #displayVideosWrap').html('');
 
   if (dirPath) {
     recurseDirSync(dirPath, 3, function(filePath, isFile, stat) {
       var [ext, extImg, extVid] = filePath.match(/\.(?:(png|jpe?g|gif)|(mp4))$/i) || [];
       if (isFile && ext && !path.basename(filePath).startsWith('.')) {
         if (extVid) {
-          var jListItem = $('<div class="list-item">').appendTo('#collapseVideos > .panel-body');
-          mm(fs.createReadStream(filePath), function (err, metadata) {
-            if (err) {
-              metadata = { title: path.basename(filePath) };
+          var jListItem = $('<div class="list-item">').appendTo('#displayVideosWrap');
+          getVideoImage(filePath, (t) => t / 3, (img, obj) => {
+            if (obj.event.type == 'error') {
+              jListItem.remove();
             }
-            
-            getVideoImage(filePath, (t) => t / 3, (img, t, event) => {
-              if (event.type == 'error') {
-                jListItem.remove();
-              }
-              else {
-                metadata.realDuration = t * 3;
+            else {
+              var metadata = {
+                title: path.basename(filePath),
+                realDuration: obj.duration
+              };
+              setDisplayListItem(jListItem, filePath, metadata, img);
+
+              // Try to get extra title info.
+              mm(fs.createReadStream(filePath), function (err, newMetaData) {
+                if (!err) {
+                  JS.extend(metadata, newMetaData);
+                }
                 setDisplayListItem(jListItem, filePath, metadata, img);
-              }
-            });
+              });
+            }
           });
         }
         else {
-          var jListItem = $('<div class="list-item">').appendTo('#collapseImages > .panel-body');
+          var jListItem = $('<div class="list-item">').appendTo('#displayImagesWrap');
           setDisplayListItem(jListItem, filePath, { title: path.parse(filePath).name });
         }
       }
@@ -961,7 +1019,7 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
   });
 
   jTable
-    .appendTo(jListItem)
+    .appendTo(jListItem.html(''))
     .addClass('list-item-wrap');
 }
 
@@ -1046,15 +1104,17 @@ function setDisplayTextListItem(jListItem, text, textIndex) {
 }
 
 function updateDisplayText(text, i) {
-  var jListItem = $('#collapseDisplayTexts .panel-body > .list-item').eq(i);
+  var jListItem = $('#displayTextsWrap > .list-item').eq(i);
   jListItem.find('.content-wrap .title').text(text.name);
   jListItem.find('.image-wrap .middler-content:eq(0)').html(markdown.makeHtml(text.text));
 }
 
 function onMusicEnd() {
+  console.log('onMusicEnd:', {time: JS.now(), arguments,"$('#btnBGMusic').hasClass('active')": $('#btnBGMusic').hasClass('active')});
   if ($('#btnBGMusic').hasClass('active')) {
     var songIndex = executePropFunc('song-randomizer', [songs, lastSongIndex]);
-    playSongAt(songIndex == undefined ? JS.random(songs.length - 1, true) : songIndex, true);
+    var song = songs[songIndex = songIndex == undefined ? JS.random(songs.length - 1, true) : songIndex];
+    playSongAt(songIndex, true, songTitlesToLyricsIndex[song.title]);
   }
   else {
     $('#modalMusic').modal('hide');
@@ -1136,7 +1196,94 @@ function updateLyricsImportTable() {
   }
 }
 
-$(function() {
+function onSubmitLyricsLang(e) {
+  try { fs.unlinkSync(USER_LYRICS_PATH); } catch(e){}
+  updateLyricsImportTable();
+
+  var jOpt = $(`#selLibLangs > option[value=${$('#selLibLangs').val()}]`);
+  var rsconf = jOpt.data('rsconf');
+  var lib = jOpt.data('lib');
+  var songs = [];
+  if (rsconf) {
+    appSettings.set('rsconf', rsconf);
+    var urls = SONG_CODES.map((pubCode, i) => executePropFunc('get-jw-library-lyrics-page-url', [i + 1, rsconf, lib, pubCode]));
+
+    var loader = new Loader({ max: SONG_COUNT, title: 'Load Lyrics from Online JW Library' });
+
+    function f() {
+      var url = urls.shift();
+      var songNumber = SONG_COUNT - urls.length;
+      loader.value = songNumber - 1;
+      loader.text = `Loading song #${songNumber}...`;
+      if (url) {
+        $.ajax({
+          url,
+          success(html) {
+            var song = executePropFunc('parse-jw-library-lyrics-page', [html]);
+            if (song) {
+              songs.push(song);
+              f();
+            }
+          },
+          error() {
+            loader.close();
+          },
+          dataType: 'html'
+        });
+      }
+      else {
+        // Done
+        fs.writeFileSync(USER_LYRICS_PATH, JSON.stringify(songs), 'utf8');
+        updateLyricsImportTable();
+        loader.close();
+      }
+    }
+    f();
+  }
+  e.preventDefault();
+  return false;
+}
+
+function onClickDeleteText() {
+  var texts = appSettings.get('texts', []);
+  if (texts.length > 1) {
+    var response = dialog.showMessageBox({
+      title: 'Delete Text',
+      message: 'Are you sure you want to delete this text?',
+      buttons: ['Yes', 'No'],
+      type: 'question'
+    });
+    if (response == 0) {
+      var index = $('#txtTextName').data('index');
+      texts.splice(index, 1);
+      appSettings.set('texts', texts);
+
+      var defaultTextIndex = appSettings.get('defaultTextIndex');
+      if (defaultTextIndex > index) {
+        defaultTextIndex--;
+      }
+      else if(defaultTextIndex === index) {
+        defaultTextIndex = undefined;
+      }
+      appSettings.set('defaultTextIndex', defaultTextIndex);
+
+      $('#displayTextsWrap > .list-item').eq(index).remove();
+
+      $('#textsList > li.text').eq(index).remove();
+      $(`#textsList > li.text:gt(${index-1})`).each(function() {
+        $(this).data('index', $(this).data('index') - 1);
+      });
+
+      if (index == texts.length) {
+        index--;
+      }
+
+      selectText(texts[index], index);
+    }
+  }
+}
+
+function onReady() {
   JS.addTypeOf(jQuery, 'jQuery');
 
   $('select.combobox').combobox();
@@ -1156,7 +1303,8 @@ $(function() {
 
   $('#btnSetSongsDir').click(() => {
     dialog.showOpenDialog({
-      properties: ['openDirectory']
+      properties: ['openDirectory'],
+      defaultPath: appSettings.get('songsDir')
     }, dirPaths => {
       if (dirPaths) {
         var dirPath = dirPaths[0].replace(new RegExp(`(${JS.quoteRegExp(path.sep)})?$`), path.sep);
@@ -1177,7 +1325,8 @@ $(function() {
 
   $('#btnSetMusicPicDir').click(() => {
     dialog.showOpenDialog({
-      properties: ['openDirectory']
+      properties: ['openDirectory'],
+      defaultPath: appSettings.get('musicPicDir')
     }, ([dirPath]) => {
       if (dirPath) {
         var dirPath = dirPath.replace(new RegExp(`(${JS.quoteRegExp(path.sep)})?$`), path.sep);
@@ -1195,57 +1344,22 @@ $(function() {
     setMusicPicDir(dirPath);
   });
 
-  $('#formLyricsLang').on('submit', function(e) {
-    try { fs.unlinkSync(USER_LYRICS_PATH); } catch(e){}
-    updateLyricsImportTable();
+  $('#formLyricsLang').on('submit', onSubmitLyricsLang);
 
-    var jOpt = $(`#selLibLangs > option[value=${$('#selLibLangs').val()}]`);
-    var rsconf = jOpt.data('rsconf');
-    var lib = jOpt.data('lib');
-    var songs = [];
-    if (rsconf) {
-      appSettings.set('rsconf', rsconf);
-      var urls = SONG_CODES.map((pubCode, i) => executePropFunc('get-jw-library-lyrics-page-url', [i + 1, rsconf, lib, pubCode]));
-
-      var loader = new Loader({ max: SONG_COUNT, title: 'Load Lyrics from Online JW Library' });
-
-      function f() {
-        var url = urls.shift();
-        var songNumber = SONG_COUNT - urls.length;
-        loader.value = songNumber - 1;
-        loader.text = `Loading song #${songNumber}...`;
-        if (url) {
-          $.ajax({
-            url,
-            success(html) {
-              var song = executePropFunc('parse-jw-library-lyrics-page', [html]);
-              if (song) {
-                songs.push(song);
-                f();
-              }
-            },
-            error() {
-              loader.close();
-            },
-            dataType: 'html'
-          });
-        }
-        else {
-          // Done
-          fs.writeFileSync(USER_LYRICS_PATH, JSON.stringify(songs), 'utf8');
-          updateLyricsImportTable();
-          loader.close();
-        }
-      }
-      f();
-    }
-    e.preventDefault();
-    return false;
+  $('#btnUpdateLanguages').click(function() {
+    var url = getAppProp('jw-library-languages-page').value;
+    $.get(url, function(html) {
+      var [rsconf, lib] = (url.match(/\/(r\d+)\/(lp-\w+)(?:[\/#\?]|$)/) || []).slice(1);
+      var langs = executePropFunc('parse-jw-library-languages-page', [html, rsconf, lib]);
+      fs.writeJsonSync(USER_WOL_LANGUAGES_PATH, langs, { spaces: 2 });
+      listWOLLangs();
+    });
   });
 
   $('.js-btn-set-media-dir').click(function() {
     dialog.showOpenDialog({
-      properties: ['openDirectory']
+      properties: ['openDirectory'],
+      defaultPath: appSettings.get('displayDir')
     }, function(dirPaths) {
       if (dirPaths) {
         var dirPath = dirPaths[0];
@@ -1313,45 +1427,7 @@ $(function() {
     addTextToList(text, index, true);
   });
 
-  $('#btnDeleteText').click(function() {
-    var texts = appSettings.get('texts', []);
-    if (texts.length > 1) {
-      var response = dialog.showMessageBox({
-        title: 'Delete Text',
-        message: 'Are you sure you want to delete this text?',
-        buttons: ['Yes', 'No'],
-        type: 'question'
-      });
-      if (response == 0) {
-        var index = $('#txtTextName').data('index');
-        texts.splice(index, 1);
-        appSettings.set('texts', texts);
-
-        var defaultTextIndex = appSettings.get('defaultTextIndex');
-        if (defaultTextIndex > index) {
-          defaultTextIndex--;
-        }
-        else if(defaultTextIndex === index) {
-          defaultTextIndex = undefined;
-        }
-        appSettings.set('defaultTextIndex', defaultTextIndex);
-
-        $('#collapseDisplayTexts .panel-body > .list-item').eq(index).remove();
-
-        $('#textsList > li.text').eq(index).remove();
-        $(`#textsList > li.text:gt(${index-1})`).each(function() {
-          $(this).data('index', $(this).data('index') - 1);
-        });
-
-        if (index == texts.length) {
-          index--;
-        }
-
-        selectText(texts[index], index);
-      }
-    }
-
-  });
+  $('#btnDeleteText').click(onClickDeleteText);
 
   $('#collapseText').on('shown.bs.collapse', adjustTextPreviewZoom);
 
@@ -1409,8 +1485,74 @@ $(function() {
     })
   );
 
+  $('#selWOLLangs').on('change', function() {
+    appSettings.set('wolLang', this.value);
+    showWOLContent();
+  });
+
+  $('#btnDownloadBible').click((event) => {
+    $('#selWOLLangs').each((i, el) => {
+      executePropFunc('parse-bible-from-wol', [
+        `https://wol.jw.org/${el.value}/`,
+        (success, results) => {
+          if (success) {
+            var biblePath = path.join(USER_DATA_PATH, `bible-${results.locale}`);
+            fs.ensureDirSync(biblePath);
+            fs.emptyDirSync(biblePath);
+
+            var books = [];
+            if (results.hebrew) {
+              results.hebrew.books = results.hebrew.books.map(book => {
+                books.push(book);
+                var bareBook = JS.extend({}, book);
+                bareBook.chapters = book.chapters.map(chapter => chapter.verses.length);
+                return bareBook;
+              });
+            }
+            if (results.greek) {
+              results.greek.books = results.greek.books.map(book => {
+                books.push(book);
+                var bareBook = JS.extend({}, book);
+                bareBook.chapters = book.chapters.map(chapter => chapter.verses.length);
+                return bareBook;
+              });
+            }
+            books.forEach(book => {
+              var bookPath = path.join(biblePath, `${book.no} - ${book.name}.json`);
+              fs.writeJsonSync(bookPath, book, {encoding: 'utf8', spaces: 0});
+            });
+            var indexPath = path.join(biblePath, 'index.json');
+            fs.writeJsonSync(indexPath, results, {encoding: 'utf8', spaces: 0});
+            dialog.showMessageBox({
+              title: 'Bible Downloaded',
+              message: `The Bible downloaded successfully in ${results.lang}.`,
+              buttons: ['OK'],
+              type: 'info'
+            });
+          }
+          else {
+            console.error('parse-bible-from-wol:', results);
+            dialog.showErrorBox('Watchtower Online Library Parser Failed', JSON.stringify(results, null, 2));
+          }
+        }
+      ]);
+    });
+  });
+
   loadSettings();
-});
+
+  initVues();
+
+  // Call any functions that will affect the created vues.
+  showWOLContent();
+}
+
+function initVues() {
+  bibleVue = new Vue({
+    el: '#displayBibleWrap',
+    data: { hebrew: {}, greek: {} }
+  });
+}
 
 function addKeyBindingsMenuTo(editor) {
   editor.commands.addCommand({
@@ -1615,3 +1757,5 @@ function fitInto(desiredWidth, desiredHeight, actualWidth, actualHeight) {
   }
   return { width: desiredWidth, height: desiredHeight };
 }
+
+$(onReady);

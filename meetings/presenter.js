@@ -62,6 +62,9 @@ const MEDIA_PRESENTERS = {
     audio.currentTime = 0;
     if (!startPaused) {
       audio.play();
+      $('.music-presenter-details > .song-title')
+        [lyricsData ? 'show' : 'hide']()
+        .text(lyricsData ? `${lyricsData.heading} - ${lyricsData.title}` : '');
     }
   }
 };

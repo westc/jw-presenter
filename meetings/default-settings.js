@@ -51,6 +51,24 @@ module.exports = {
       "type": "url"
     },
     {
+      "id": "parse-bible-from-wol",
+      "name": "Parse Bible From Watchtower Online Library",
+      "value": "var bible = {};\n\nvar processor = {\n  active: false,\n  urls: [],\n  parsers: [],\n  extraArgs: [],\n  queue: function(url, parser) {\n    this.urls.push(url);\n    this.parsers.push(parser);\n    this.extraArgs.push([].slice.call(arguments, 2));\n    if (!this.active) {\n      this.process();\n    }\n  },\n  process: function() {\n    var me = this;\n    me.active = true;\n\n    var url = me.urls.shift();\n    var parser = me.parsers.shift();\n    var extraArgs = me.extraArgs.shift();\n\n    $.ajax({\n      url: url,\n      success: function(data) {\n        try {\n          parser.apply({url,data}, [$(data)].concat(extraArgs));\n          if (me.urls.length) {\n            me.process();\n          }\n          else {\n            onDone.call(url, true, bible);\n          }\n        }\n        catch (e) {\n          onDone.apply(url, [false, e].concat(extraArgs));\n          me.active = false;\n        }\n      }\n    });\n  }\n};\n\nfunction parseWOL(jHTML) {\n  var bibleHREF = jHTML.find('#menuBible a').attr('href');\n  if (bibleHREF) {\n    processor.queue(replaceDomain(bibleHREF, wolURL), parseBible);\n  }\n  else {\n    throw new Error('No Bible found for this library.');\n  }\n}\n\nfunction parseBible(jHTML) {\n  var jPubYear = jHTML.find('#pubYear');\n  if (jPubYear.length) {\n    bible.year = +jPubYear.text();\n  }\n  var jLocale = jHTML.find('#locale');\n  if (jLocale.length) {\n    bible.localw = jLocale.text();\n  }\n  var jEngSym = jHTML.find('#englishSym');\n  if (jEngSym.length) {\n    bible.engSym = jEngSym.text();\n  }\n  var jRsconf = jHTML.find('#rsconf');\n  if (jRsconf.length) {\n    bible.rsconf = jRsconf.text();\n  }\n  var jLibLang = jHTML.find('#libLang');\n  if (jLibLang.length) {\n    bible.lang = jLibLang.text();\n  }\n  var jHebrew = jHTML.find('.books.hebrew');\n  var books = [];\n  if (jHebrew.length) {\n    bible.hebrew = {\n      heading: jHebrew.find('.group').text(),\n      books: jHebrew.find('.book a').toArray().map(function(el) {\n        return {\n          url: replaceDomain($(el).attr('href'), wolURL),\n          name: $('.name', el).text(),\n          abbr: $('.abbreviation', el).text(),\n          id: $(el).data('bookid')\n        };\n      })\n    };\n    books = books.concat(bible.hebrew.books);\n  }\n  var jGreek = jHTML.find('.books.greek');\n  if (jGreek.length) {\n    bible.greek = {\n      heading: jGreek.find('.group').text(),\n      books: jGreek.find('.book a').toArray().map(function(el) {\n        return {\n          url: replaceDomain($(el).attr('href'), wolURL),\n          name: $('.name', el).text(),\n          abbr: $('.abbreviation', el).text(),\n          id: $(el).data('bookid')\n        };\n      })\n    };\n    books = books.concat(bible.greek.books);\n  }\n\n  if (books.length) {\n    for (var book; book = books.shift();) {\n      processor.queue(book.url, parseBook, book);\n    }\n  }\n  else {\n    throw new Error('Neither hebrew nor greek books found.');\n  }\n}\n\nfunction parseBook(jHTML, book) {\n  book.chapters = jHTML.find('.chapters .chapter a').toArray().map(function(el, i) {\n    var url = replaceDomain(el.href, wolURL);\n    var chapter = {\n      url: url,\n      num: $(el).text()\n    };\n    processor.queue(url, parseChapter, chapter, book, i);\n    return chapter;\n  });\n}\n\nfunction parseChapter(jHTML, chapter, book, chapterIndex) {\n  if (!jHTML[0].hasOwnProperty('nodeType') && jHTML[0].content) {\n    jHTML = $('<div>' + jHTML[0].content + '</div>');\n  }\n  var sel = 'v' + book.id + '-' + (chapterIndex + 1) + '-';\n  var pSel = 'p:has(>[id^=' + sel + '])';\n  var vSel = '[id^=' + sel + ']';\n  var verses = chapter.verses = [], currVerseIndex = -1, verse;\n  var j = jHTML.find(pSel).find('a').remove().end().each(function(pi, p) {\n    $(p).find(vSel).each(function(i, el) {\n      var verseIndex = (el.id.match(/v\\d+-\\d+-(\\d+)-\\d+/) || [])[1];\n      if (verseIndex != currVerseIndex) {\n        currVerseIndex = verseIndex;\n        verses.push(verse = {\n          t: ((pi && !i) ? '\\n' : '') + $(el).text().replace(/^[\\s\\xA0]*\\d+[\\s\\xA0]*/, '').trim()\n        });\n    if (verseIndex == '0') {\n      verse.heading = true;\n        }\n      }\n      else {\n        verse.t += '\\n' + $(el).text().trim();\n      }\n    });\n  });\n\n  if (!verses.length) {\n    console.error(this, jHTML);\n    throw new Error('No contents found for ' + book.name + ' ' + chapter.num + '.');\n  }\n\n  if (verses[0].heading) {\n    chapter.heading = verses.shift().t;\n  }\n\n  verses.forEach(function(verse, i) {\n    verses[i] = verse.t;\n  });\n}\n\nfunction replaceDomain(url, domainURL) {\n  return domainURL.replace(/(^\\w*:\\/+[^\\/]+)[\\s\\S]+$/, '$1') + url.replace(/^\\w*:\\/+[^\\/]+/, '');\n}\n\nprocessor.queue(wolURL, parseWOL);",
+      "type": "function",
+      "arguments": [
+        {
+          "name": "wolURL",
+          "type": "string",
+          "text": "URL of the Watchtower Online Library being used to parse the Bible."
+        },
+        {
+          "name": "onDone",
+          "type": "function(success: boolean, results: *)",
+          "text": "Function called once all of the Bible has been parsed or when an error occurs.  The first parameter passed will indicate if the Bible was successfully parsed.  The second parameter will indicate the results."
+        }
+      ]
+    },
+    {
       "id": "parse-bible-books-page",
       "name": "Parse Online JW Library Bible Books Page",
       "value": "var result = {}, jMaster = jQuery(html);\n[\n  { sel: '.hebrew, .hebrewOnly', id: 'hebrew', count: 39 },\n  { sel: '.greek, .greekOnly', id: 'greek', count: 27 }\n].forEach(({ sel, id, count}) => {\n  jMaster.find(`.bible .books:not(:not(${sel}))`).each((i, elem) => {\n    var hebrewTitle = jQuery('.group:eq(0)', elem).text();\n    var anchors = jQuery('a[data-bookid]:not(:has(a[data-bookid]))', elem).toArray();\n    if (hebrewTitle && anchors.length == count) {\n      var lastURL = anchors[anchors.length - 1].href;\n      result[id] = {\n        title: hebrewTitle,\n        names: anchors.map(a => jQuery('.name', a).text()),\n        abbreviations: anchors.map(a => jQuery('.abbreviation', a).text()),\n        urls: anchors.map((a, i) => lastURL.replace(/\\b(39|66)\\b/, i + (count == 39 ? 1 : 40)))\n      };\n    }\n  });\n});\nreturn result;",
@@ -119,7 +137,7 @@ module.exports = {
     {
       "id": "parse-jw-library-languages-page",
       "name": "Parse Online JW Library Languages Page",
-      "value": "return $(html).find('.completeList a[data-rsconf][data-lib]').map(function(i, e) {\n  var j = $(e), jLang = j.find('[lang]');\n  return {\n    rsconf: j.data('rsconf'),         // eg. \"r5\"\n    lib: j.data('lib'),               // eg. \"lp-t\"\n    name: jLang.eq(0).text().trim(),  // eg. \"Portuguese\"\n    lang: jLang.eq(1).text().trim()   // eg. \"Português\"\n  };\n}).toArray();",
+      "value": "return $(html).find('.completeList a[data-rsconf][data-lib]').map(function(i, e) {\n  var j = $(e), jLang = j.find('[lang]');\n  return {\n    rsconf: j.data('rsconf'),         // eg. \"r5\"\n    lib: j.data('lib'),               // eg. \"lp-t\"\n    name: jLang.eq(0).text().trim(),  // eg. \"Portuguese\"\n    lang: jLang.eq(1).text().trim(),  // eg. \"Português\"\n    locale: j.data('locale')          // eg. \"pt\"\n  };\n}).toArray();",
       "type": "function",
       "arguments": [
         {
@@ -235,19 +253,9 @@ module.exports = {
           "value": "Show"
         },
         {
-          "id": "display-tab",
-          "label": "\"Display\" Tab",
-          "value": "Display"
-        },
-        {
           "id": "display-directory-button",
           "label": "\"Set Media Directory\" Button",
           "value": "Set Media Directory"
-        },
-        {
-          "id": "images-panel",
-          "label": "\"Images\" Panel",
-          "value": "Images"
         },
         {
           "id": "dimensions-label",
@@ -265,11 +273,6 @@ module.exports = {
           "value": "Show Video"
         },
         {
-          "id": "videos-panel",
-          "label": "\"Videos\" Panel",
-          "value": "Videos"
-        },
-        {
           "id": "video-duration-label",
           "label": "\"Duration\" Label for Videos",
           "value": "Duration"
@@ -280,9 +283,24 @@ module.exports = {
           "value": "Play Video"
         },
         {
-          "id": "display-texts-panel",
-          "label": "\"Texts\" Panel (On Display Tab)",
+          "id": "display-images-tab",
+          "label": "\"Images\" Tab",
+          "value": "Images"
+        },
+        {
+          "id": "display-videos-tab",
+          "label": "\"Videos\" Tab",
+          "value": "Videos"
+        },
+        {
+          "id": "display-texts-tab",
+          "label": "\"Texts\" Tab",
           "value": "Texts"
+        },
+        {
+          "id": "display-bible-tab",
+          "label": "\"Bible\" Tab",
+          "value": "Bible"
         },
         {
           "id": "show-text-button",

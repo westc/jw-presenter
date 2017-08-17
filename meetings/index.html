@@ -27,6 +27,7 @@
     // Load the index and loader scripts
     require('./index');
     </script>
+    <script type="text/JavaScript" src="./../vue.js"></script>
     <script type="text/JavaScript" src="./../loader.js"></script>
 
     <link href="index.css" rel="stylesheet" />
@@ -43,12 +44,14 @@
               <!-- Nav tabs -->
               <ul class="nav nav-tabs" role="tablist">
                 <li role="presentation" class="active"><a href="#musicPanel" aria-controls="musicPanel" role="tab" data-toggle="tab" data-panelhead="musicPanelHead">Music</a></li>
-                <li role="presentation"><a href="#displayPanel" aria-controls="displayPanel" role="tab" data-toggle="tab">Display</a></li>
+                <li role="presentation"><a href="#displayImagesPanel" aria-controls="displayImagesPanel" role="tab" data-toggle="tab">Display Images</a></li>
+                <li role="presentation"><a href="#displayVideosPanel" aria-controls="displayVideosPanel" role="tab" data-toggle="tab">Display Videos</a></li>
+                <li role="presentation"><a href="#displayBiblePanel" aria-controls="displayBiblePanel" role="tab" data-toggle="tab">Display Bible</a></li>
+                <li role="presentation"><a href="#displayTextsPanel" aria-controls="displayTextsPanel" role="tab" data-toggle="tab">Display Text</a></li>
                 <li role="presentation"><a href="#settingsPanel" aria-controls="settingsPanel" role="tab" data-toggle="tab">Settings</a></li>
               </ul>
               <div id="musicPanelHead" class="tab-panel-head line-margin-after" role="tabpanelhead">
                 <button id="btnBGMusic" type="button" class="btn btn-default">Background Music</button>
-                <span id="bgMusicDetails"></span>
               </div>
             </td>
           </tr>
@@ -57,11 +60,11 @@
               <div id="divWrapAllTabPanes">
                 <!-- Tab panes -->
                 <div class="tab-content">
-                  <div role="tabpanel" class="tab-pane active" id="musicPanel">
+                  <div role="tabpanel" class="tab-pane fade in active" id="musicPanel">
                     <div id="songsList"></div>
-                  </div>
+                  </div><!--/#musicPanel-->
 
-                  <div role="tabpanel" class="tab-pane" id="displayPanel">
+                  <div role="tabpanel" class="tab-pane fade display-panel" id="displayImagesPanel">
                     <div class="input-group line-margin-after">
                       <span class="input-group-btn">
                         <button class="js-btn-set-media-dir btn btn-default" type="button">Set Media Directory</button>
@@ -73,52 +76,42 @@
                         </button>
                       </span>
                     </div>
-                    <div class="panel-group" id="displayAccordionGroup" role="tablist" aria-multiselectable="true">
-                      <div class="panel panel-default">
-                        <div class="panel-heading" role="tab" id="collapseImagesHeader">
-                          <h4 class="panel-title">
-                            <a role="button" data-toggle="collapse" href="#collapseImages" aria-expanded="false" aria-controls="collapseImages">
-                              Images
-                            </a>
-                          </h4>
-                        </div>
-                        <div id="collapseImages" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseImagesHeader">
-                          <div class="panel-body">
-                          </div>
-                        </div>
-                      </div>
+                    <div id="displayImagesWrap"></div>
+                  </div><!--/#displayImagesPanel-->
 
-                      <div class="panel panel-default">
-                        <div class="panel-heading" role="tab" id="collapseVideosHeader">
-                          <h4 class="panel-title">
-                            <a role="button" data-toggle="collapse" href="#collapseVideos" aria-expanded="false" aria-controls="collapseVideos">
-                              Videos
-                            </a>
-                          </h4>
-                        </div>
-                        <div id="collapseVideos" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseVideosHeader">
-                          <div class="panel-body">
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="panel panel-default">
-                        <div class="panel-heading" role="tab" id="collapseDisplayTextsHeader">
-                          <h4 class="panel-title">
-                            <a role="button" data-toggle="collapse" href="#collapseDisplayTexts" aria-expanded="false" aria-controls="collapseDisplayTexts">
-                              Texts (from Settings)
-                            </a>
-                          </h4>
-                        </div>
-                        <div id="collapseDisplayTexts" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseDisplayTextsHeader">
-                          <div class="panel-body">
-                          </div>
-                        </div>
-                      </div>
+                  <div role="tabpanel" class="tab-pane fade display-panel" id="displayVideosPanel">
+                    <div class="input-group line-margin-after">
+                      <span class="input-group-btn">
+                        <button class="js-btn-set-media-dir btn btn-default" type="button">Set Media Directory</button>
+                      </span>
+                      <input class="js-txt-media-dir form-control" type="text" readonly />
+                      <span class="input-group-btn">
+                        <button class="js-btn-refresh-media-dir btn btn-default" type="button">
+                          <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        </button>
+                      </span>
                     </div>
-                  </div>
+                    <div id="displayVideosWrap"></div>
+                  </div><!--/#displayVideosPanel-->
 
-                  <div role="tabpanel" class="tab-pane" id="settingsPanel">
+                  <div role="tabpanel" class="tab-pane fade display-panel" id="displayTextsPanel">
+                    <div id="displayTextsWrap"></div>
+                  </div><!--/#displayTextsPanel-->
+
+                  <div role="tabpanel" class="tab-pane fade display-panel" id="displayBiblePanel">
+                    <div id="displayBibleWrap">
+                      <h3 v-if="hebrew && hebrew.heading">{{ hebrew.heading }}</h3>
+                      <ul v-if="hebrew && hebrew.books">
+                        <li v-for="book in hebrew.books" v-bind:class="'color' + book.color">{{ book.name }}</li>
+                      </ul>
+                      <h3 v-if="greek && greek.heading">{{ greek.heading }}</h3>
+                      <ul v-if="greek && greek.books">
+                        <li v-for="book in greek.books" v-bind:class="'color' + book.color">{{ book.name }}</li>
+                      </ul>
+                    </div>
+                  </div><!--/#displayBiblePanel-->
+
+                  <div role="tabpanel" class="tab-pane fade" id="settingsPanel">
 
                     <div class="panel-group" id="settingsAccordionGroup" role="tablist" aria-multiselectable="true">
                       <div class="panel panel-default">
@@ -252,6 +245,53 @@
                       </div>
 
                       <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="collapseWOLHeading">
+                          <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-toggle="collapse" href="#collapseWOL" aria-expanded="false" aria-controls="collapseWOL">Watchtower Online Library</a>
+                          </h4>
+                        </div>
+                        <div id="collapseWOL" class="panel-collapse collapse" role="tabpanel" aria-labelledby="collapseWOLHeading">
+                          <div class="panel-body">
+                            <div style="form-group">
+                              <div style="display: table-cell; width: 1px; vertical-align: middle;">
+                                <label for="selWOLLangs">Language:</label>
+                              </div>
+                              <div style="display: table-cell; width: 99%; padding: 0 1em; vertical-align: middle;">
+                                <select id="selWOLLangs" class="form-control"></select>
+                              </div>
+                              <div style="display: table-cell; width: 1px; vertical-align: middle;">
+                                <button id="btnUpdateLanguages" class="btn btn-primary" type="button">
+                                  <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                  Refresh
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <ul class="nav nav-tabs" role="tablist">
+                                <li role="presentation" class="active"><a href="#tabWOLBible" aria-controls="tabWOLBible" role="tab" data-toggle="tab">Bible</a></li>
+                                <li role="presentation"><a href="#tabWOLLyrics" aria-controls="tabWOLLyrics" role="tab" data-toggle="tab">Lyrics</a></li>
+                              </ul><!--/.nav-tabs-->
+                              <div class="tab-content">
+                                <div role="tabpanel" class="tab-pane fade in active" id="tabWOLBible">
+                                  <button id="btnDownloadBible" class="btn btn-default" type="button">
+                                    <span class="glyphicon glyphicon-book" aria-hidden="true"></span>
+                                    Download Bible
+                                  </button>
+                                </div>
+                                <div role="tabpanel" class="tab-pane fade" id="tabWOLLyrics">
+                                  <button id="btnDownloadLyrics" class="btn btn-default" type="button">
+                                    <span class="glyphicon glyphicon-music" aria-hidden="true"></span>
+                                    Download Lyrics
+                                  </button>
+                                </div>
+                              </div><!--/.tab-content-->
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="panel panel-default">
                         <div class="panel-heading" role="tab" id="collapsePropsHeading">
                           <h4 class="panel-title">
                             <a class="collapsed" role="button" data-toggle="collapse" href="#collapseProps" aria-expanded="false" aria-controls="collapseProps">Properties</a>
@@ -285,7 +325,7 @@
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </div><!--/#settingsPanel-->
                 </div>
               </div>
             </td>

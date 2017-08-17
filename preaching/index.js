@@ -164,6 +164,16 @@ function showDetailKeywords(file) {
     }).$);
 }
 
+function showPreviewSlides(file) {
+  $('#slidePreviewWrap').html('');
+  getVideoImage(file.path.replace(/\?/g, '%3F'), {start: 1, end: -1, width: 75}, (imgs, times) => {
+    $('#slidePreviewWrap').append(imgs.map((img, i) => {
+      img.title = formatTime(times[i]);
+      return img;
+    }));
+  });
+}
+
 function showDetailSlides(file, imagesIndex) {
   var sw = screen.width, sh = screen.height;
 
@@ -195,7 +205,7 @@ function showDetailSlides(file, imagesIndex) {
           setBGVideoImage({ src: imageURLs[imageIndex] });
         }
         else {
-          getVideoImage(file.path.replace(/\?/g, '%3F'), time, setBGVideoImage);
+          getVideoImage(file.path.replace(/\?/g, '%3F'), {time}, setBGVideoImage);
         }
       }, 250);
 
@@ -506,6 +516,7 @@ function showVids(files) {
               .find('#btnAddSlide').unbind('click').click(addSlideToFile).end()
               .find('.nav-tabs > li:eq(0) > a').tab('show').end()
               .find('.nav-tabs > li:eq(1) > a').one('shown.bs.tab', JS.partial(showDetailSlides, file, null)).end()
+              .find('.nav-tabs > li:eq(2) > a').one('shown.bs.tab', JS.partial(showPreviewSlides, file, null)).end()
               .one('shown.bs.modal', function() {
                 jModal.find('#txtVidTitle').focus();
               })
@@ -581,8 +592,8 @@ function showSlides(opt_offset) {
   jSlideWrap.find('.previous')[slideIndex > 0 ? 'removeClass' : 'addClass']('disabled');
   jSlideWrap.find('.next')[slideIndex + 1 < slides.length ? 'removeClass' : 'addClass']('disabled');
 
-  getVideoImage(file.path.replace(/\?/g, '%3F'), slide.time, function(img, time, event) {
-    if (event.type != 'error') {
+  getVideoImage(file.path.replace(/\?/g, '%3F'), {time: slide.time}, function(img, time, errEvent) {
+    if (!errEvent) {
       maximizeFontSize(
         jSlideWrap.css('background-image', JS.sub("url('{}')", img.src))
           .find('.text').text(slide.text)[0]
@@ -612,24 +623,81 @@ function showThumbnail(file, div) {
   }
 }
 
-// https://gist.github.com/westc/f6de681820d78df64c01e10bfd03f985
-function getVideoImage(path, secs, callback) {
-  var me = this, video = document.createElement('video');
+// Derived from https://gist.github.com/westc/f6de681820d78df64c01e10bfd03f985
+function getVideoImage(path, opts, callback) {
+  opts = opts || {};
+  var duration,
+      me = this,
+      video = document.createElement('video'),
+      times = [0],
+      imgs = [],
+      seekIndex = 0,
+      timeWasArray = Object.prototype.toString.call(opts.time) == '[object Array]',
+      canvas = document.createElement('canvas'),
+      ctx = canvas.getContext('2d');
   video.onloadedmetadata = function() {
-    if ('function' === typeof secs) {
-      secs = secs(this.duration);
+    duration = video.duration;
+    if ('undefined' != typeof opts.start && 'undefined' != typeof opts.end) {
+      var start = getTime(opts.start),
+          end = getTime(opts.end);
+      var step = opts.step || 1;
+      if (end - start > 0 != step > 0) {
+        step = -step;
+      }
+      timeWasArray = true;
+      times = [];
+      for (var time = start; step > 0 ? time < end : (time > end); time += step) {
+        times.push(time);
+      }
     }
-    this.currentTime = Math.min(Math.max(0, (secs < 0 ? this.duration : 0) + secs), this.duration);
+    else {
+      var time = opts.time;
+      if (time) {
+        times = timeWasArray ? time : [time];
+      }
+    }
+    seekNext();
   };
+  function getTime(time) {
+    if ('function' === typeof time) {
+      time = time(duration);
+    }
+    return Math.max(0, Math.min(time < 0 ? Math.max(0, time + duration) : time, duration));
+  }
+  function seekNext() {
+    if (times.length > seekIndex) {
+      times[seekIndex] = video.currentTime = getTime(times[seekIndex]);
+      seekIndex++;
+    }
+    else if (timeWasArray) {
+      callback.call(me, imgs, times);
+    }
+    else {
+      callback.call(me, imgs[0], times[0]);
+    }
+  }
   video.onseeked = function(e) {
-    var canvas = document.createElement('canvas');
-    canvas.height = video.videoHeight;
-    canvas.width = video.videoWidth;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    var width = opts.width, height = opts.height;
+    if (!width && !height) {
+      height = video.videoHeight;
+      width = video.videoWidth;
+    }
+    else if (!width) {
+      width = height * video.videoWidth / video.videoHeight;
+    }
+    else if (!height) {
+      height = width * video.videoHeight / video.videoWidth;
+    }
+    canvas.width = width;
+    canvas.height = height;
+    if (seekIndex) {
+      ctx.clearRect(0, 0, width, height);
+    }
+    ctx.drawImage(video, 0, 0, width, height);
     var img = new Image();
     img.src = canvas.toDataURL();
-    callback.call(me, img, this.currentTime, e);
+    imgs.push(img);
+    seekNext();
   };
   video.onerror = function(e) {
     callback.call(me, undefined, undefined, e);
@@ -643,9 +711,11 @@ var generateMetaData = (function(argsStack, blocked) {
       blocked = true;
       getVideoImage(
         file.path.replace(/\?/g, '%3F'),
-        function (duration) {
-          file.vid.duration = duration;
-          return duration * 3 / 4;
+        {
+          time(duration) {
+            file.vid.duration = duration;
+            return duration * 3 / 4;
+          }
         },
         function (img, currentTime, event) {
           if (event.type != 'error') {
