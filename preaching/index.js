@@ -516,7 +516,7 @@ function showVids(files) {
               .find('#btnAddSlide').unbind('click').click(addSlideToFile).end()
               .find('.nav-tabs > li:eq(0) > a').tab('show').end()
               .find('.nav-tabs > li:eq(1) > a').one('shown.bs.tab', JS.partial(showDetailSlides, file, null)).end()
-              .find('.nav-tabs > li:eq(2) > a').one('shown.bs.tab', JS.partial(showPreviewSlides, file, null)).end()
+              // .find('.nav-tabs > li:eq(2) > a').one('shown.bs.tab', JS.partial(showPreviewSlides, file, null)).end()
               .one('shown.bs.modal', function() {
                 jModal.find('#txtVidTitle').focus();
               })
@@ -555,6 +555,22 @@ function showVids(files) {
   $('#body').html('').append(vidDivs);
 }
 
+function amplifyMedia(mediaElem, multiplier) {
+  var context = new (window.AudioContext || window.webkitAudioContext),
+      result = {
+        context: context,
+        source: context.createMediaElementSource(mediaElem),
+        gain: context.createGain(),
+        media: mediaElem,
+        amplify: function(multiplier) { result.gain.gain.value = multiplier; },
+        getAmpLevel: function() { return result.gain.gain.value; }
+      };
+  result.source.connect(result.gain);
+  result.gain.connect(context.destination);
+  result.amplify(multiplier);
+  return result;
+}
+
 function showVideo(file) {
   lastIndexInRandom = randomOrder.indexOf(file);
 
@@ -562,7 +578,7 @@ function showVideo(file) {
     _: 'video',
     src: file.path.replace(/\?/g, '%3F'),
     controls: true,
-    onended: function() {
+    onended() {
       if (isPlayingAll) {
         incrementVideoCount();
         playNextVideo();
@@ -571,9 +587,14 @@ function showVideo(file) {
         $('#slideWrap').data('slide-file', file).data('slide-index', 0);
         $('#videoModal').modal('hide');
       }
-    }
+    },
+    onvolumechange() {
+      appSettings.set('volume', this.volume);
+    },
+    volume: appSettings.get('volume', 1)
   });
   $('#videoModal').modal('show').find('.modal-body').html('').append(vidElem);
+  amplifyMedia(vidElem, 16);
   vidElem.play();
   vidElem.webkitRequestFullScreen();
   isPlaying = true;
