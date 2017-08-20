@@ -23,7 +23,12 @@ function MediaElementAmplifier(mediaElem) {
   [
     'setVolume',
     function(value, opt_setPerceived) {
-      this._element.volume = value / (opt_setPerceived ? this.getLoudness() : 1);
+      var volume = value / (opt_setPerceived ? this.getLoudness() : 1);
+      if (volume > 1) {
+        this.setLoudness(this.getLoudness() * volume);
+        volume = 1;
+      }
+      this._element.volume = volume;
     }
   ],
   [ 'getGainValue', function() { return this._gain.gain.value; } ],
