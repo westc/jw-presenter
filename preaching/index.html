@@ -13,6 +13,7 @@
 
     <!-- YourJS (JS) and jQuery (used by Bootstrap and just in general) -->
     <script type="text/javascript" src="../MediaElementAmplifier.js"></script>
+    <script type="text/javascript" src="../vue.js"></script>
     <script type="text/JavaScript">
     var JS = require('./../YourJS/JS.js');
     var jQuery = require('./../jquery-2.2.1.min.js'), $ = jQuery;
@@ -60,6 +61,12 @@
                 <span>&nbsp;Details</span>
               </a>
             </li>
+            <li>
+              <a href="javascript:;" data-toggle="modal" data-target="#settingsModal">
+                <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
+                <span>&nbsp;Settings</span>
+              </a>
+            </li>
           </ul>
           <form id="formFilter" class="navbar-form navbar-right">
             <div class="input-group">
@@ -93,6 +100,32 @@
         </div>
       </div>
     </div><!-- /detailsModal -->
+
+    <!-- settingsModal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog" aria-labelledby="settingsModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="settingsModalLabel">Details</h4>
+          </div>
+          <div class="modal-body">
+            <div style="display: table; width: 100%;">
+              <div style="display: table-cell; width 1px;">
+                <label for="rangeLoudness">Loudness:</label>
+              </div>
+              <div style="display: table-cell; width 1px; padding: 0 1em;">{{ loudness }}</div>
+              <div style="display: table-cell; width: 99%;">
+                <input type="range" min="1" max="10" step="1" v-model="loudness" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /settingsModal -->
 
     <!-- editModal -->
     <div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel">

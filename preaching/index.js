@@ -578,8 +578,7 @@ function showVideo(file) {
     volume: appSettings.get('volume', 1)
   });
 
-  // Set the element to 5 times as loud as normal.
-  (new MediaElementAmplifier(vidElem)).setLoudness(5);
+  (new MediaElementAmplifier(vidElem)).setLoudness(appSettings.get('loudness', 5));
 
   $('#videoModal').modal('show').find('.modal-body').html('').append(vidElem);
   vidElem.play();
@@ -996,7 +995,21 @@ function filterVideos() {
   appSettings.set('searchTerm', searchTerm);
 }
 
-$(function() {
+function initVues() {
+  var settingsVue = new Vue({
+    el: '#settingsModal',
+    data: {
+      loudness: appSettings.get('loudness', 5)
+    },
+    watch: {
+      loudness(val) {
+        appSettings.set('loudness', val);
+      }
+    }
+  });
+}
+
+function onReady() {
   JS.addTypeOf(jQuery, 'jQuery');
 
   $('body').on('mousemove', function() {
@@ -1073,5 +1086,8 @@ $(function() {
       jSlideWrap.removeClass('showing');
     });
 
+  initVues();
   loadFromPrevious();
-});
+}
+
+$(onReady);
