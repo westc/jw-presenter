@@ -100,16 +100,80 @@
 
                   <div role="tabpanel" class="tab-pane fade display-panel" id="displayBiblePanel">
                     <div id="displayBibleWrap">
-                      <h3 v-if="hebrew && hebrew.heading">{{ hebrew.heading }}</h3>
-                      <ul v-if="hebrew && hebrew.books">
-                        <li v-for="book in hebrew.books" v-bind:class="'color' + book.color">{{ book.name }}</li>
-                      </ul>
-                      <h3 v-if="greek && greek.heading">{{ greek.heading }}</h3>
-                      <ul v-if="greek && greek.books">
-                        <li v-for="book in greek.books" v-bind:class="'color' + book.color">{{ book.name }}</li>
-                      </ul>
-                    </div>
-                  </div><!--/#displayBiblePanel-->
+                      <div v-if="!(hebrew && hebrew.heading && hebrew.books) && !(greek && greek.heading && greek.books)" style="font-style: italic; text-align: center;">
+                        No Bible was downloaded.  You can download the Bible in the <a href="#" v-on:click="goToSettings"><b>Settings</b> tab under <b>Watchtower Online Library</b></a>.
+                      </div>
+                      <div class="panel-group" id="bibleAccordion" role="tablist" aria-multiselectable="true" v-if="hebrew && hebrew.heading && hebrew.books">
+                        <div class="panel panel-default" v-if="hebrew && hebrew.heading && hebrew.books">
+                          <div class="panel-heading" role="tab" id="headingHebrew">
+                            <h4 class="panel-title">
+                              <a class="collapsed" role="button" data-toggle="collapse" data-parent="#bibleAccordion" href="#collapseHebrew" aria-expanded="false" aria-controls="collapseHebrew">
+                                {{ hebrew.heading }}
+                              </a>
+                            </h4>
+                          </div>
+                          <div id="collapseHebrew" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingHebrew">
+                            <div class="panel-body">
+                              <ul v-if="hebrew && hebrew.books">
+                                <li v-for="bookItem in hebrew.books" v-bind:class="'color' + bookItem.color + ((book && book.name == bookItem.name) ? ' selected' : '')" v-on:click="setBook(bookItem)">{{ bookItem.name }}</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div><!--/.panel for Hebrew Books-->
+
+                        <div class="panel panel-default" v-if="greek && greek.heading && greek.books">
+                          <div class="panel-heading" role="tab" id="headingGreek">
+                            <h4 class="panel-title">
+                              <a class="collapsed" role="button" data-toggle="collapse" data-parent="#bibleAccordion" href="#collapseGreek" aria-expanded="false" aria-controls="collapseGreek">
+                                {{ greek.heading }}
+                              </a>
+                            </h4>
+                          </div>
+                          <div id="collapseGreek" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingGreek">
+                            <div class="panel-body">
+                              <ul v-if="greek && greek.books">
+                                <li v-for="bookItem in greek.books" v-bind:class="'color' + bookItem.color + ((book && book.name == bookItem.name) ? ' selected' : '')" v-on:click="setBook(bookItem)">{{ bookItem.name }}</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div><!--/.panel for Greek Books-->
+
+                        <div class="panel panel-default" v-if="book">
+                          <div class="panel-heading" role="tab" id="headingBibleChapters">
+                            <h4 class="panel-title">
+                              <a class="collapsed" role="button" data-toggle="collapse" data-parent="#bibleAccordion" href="#collapseBibleChapters" aria-expanded="false" aria-controls="collapseBibleChapters">
+                                {{ book.name }}
+                              </a>
+                            </h4>
+                          </div>
+                          <div id="collapseBibleChapters" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBibleChapters">
+                            <div class="panel-body">
+                              <ul>
+                                <li v-for="(verseCount, index) in book.chapters" v-bind:class="'color' + book.color + (chapterIndex == index ? ' selected' : '')" v-on:click="setChapterIndex(index)">{{ index + 1 }}</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div><!--/.panel for Bible Chapters-->
+
+                        <div class="panel panel-default" v-if="chapterIndex != null">
+                          <div class="panel-heading" role="tab" id="headingBibleVerses">
+                            <h4 class="panel-title">
+                              <a class="collapsed" role="button" data-toggle="collapse" data-parent="#bibleAccordion" href="#collapseBibleVerses" aria-expanded="false" aria-controls="collapseBibleVerses">
+                                {{ book.name }} {{ chapterIndex + 1 }}
+                              </a>
+                            </h4>
+                          </div>
+                          <div id="collapseBibleVerses" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBibleVerses">
+                            <div class="panel-body">
+                              <ul>
+                                <li v-for="(value, index) in (new Array(book.chapters[chapterIndex]))" v-bind:class="'color' + book.color + (verseIndex == index ? ' selected' : '')" v-on:click="setVerseIndex(index)">{{ index + 1 }}</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div><!--/.panel for Bible Verses-->
+                      </div><!--/#bibleAccordion-->
+                    </div><!--/#displayBiblePanel-->
+                  </div>
 
                   <div role="tabpanel" class="tab-pane fade" id="settingsPanel">
 

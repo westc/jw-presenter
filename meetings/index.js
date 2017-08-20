@@ -116,7 +116,10 @@ function showWOLContent() {
   var indexPath = path.join(biblePath, 'index.json');
   JS.extend(bibleVue, {
     hebrew: {},
-    greek: {}
+    greek: {},
+    book: null,
+    chapterIndex: null,
+    verseIndex: null
   });
   if (isDirectorySync(biblePath) && isFileSync(indexPath)) {
     var data = fs.readJsonSync(indexPath, {encoding: 'utf8'});
@@ -576,17 +579,21 @@ function playSongAt(songIndex, isBGMusic, opt_lyricsIndex, opt_startPaused) {
     }
   }
 
-  winPresenter.webContents.send('present-media', 'song', {
-    path: getCleanPath(appSettings.get('songsDir') + song.path),
-    isBGMusic: isBGMusic,
-    lyrics: lyricsData,
-    linesToShowAtEnd: 3,
-    imagePaths: musicImagesPaths,
-    secsDuration: song.duration,
-    secsDelay: 12,
-    secsToEndEarly: 2,
-    startPaused: opt_startPaused
-  });
+  presentMedia(
+    'song',
+    [{
+      path: getCleanPath(appSettings.get('songsDir') + song.path),
+      isBGMusic: isBGMusic,
+      lyrics: lyricsData,
+      linesToShowAtEnd: 3,
+      imagePaths: musicImagesPaths,
+      secsDuration: song.duration,
+      secsDelay: 12,
+      secsToEndEarly: 2,
+      startPaused: opt_startPaused
+    }],
+    unpressActiveMediaButtons
+  );
 
   toggleMusicPauseButton(!!opt_startPaused);
   $('#modalMusic .lyrics-navigator')[isBGMusic ? 'hide' : 'show']();
@@ -890,13 +897,12 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
           if (isImage) {
             var jThis = $(this);
             if (jThis.hasClass('active')) {
-              winPresenter.webContents.send('unpresent-media');
+              unpresentMedia();
             }
             else {
-              unpressActiveMediaButtons();
-              winPresenter.webContents.send('present-media', 'image', getCleanPath(filePath), { width, height});
+              presentMedia('image', [getCleanPath(filePath), { width, height}], unpressActiveMediaButtons);
+              jThis.addClass('active');
             }
-            jThis.toggleClass('active');
           }
           else {
             var currentTime = parseTime(jContentWrap.find(':text.time').val()),
@@ -909,7 +915,7 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
               .find('#txtVideoDuration').val(formatTime(~~duration)).end()
               .find('.duration').text(formatTime(~~duration)).end()
               .modal({ backdrop: 'static', keyboard: false });
-            winPresenter.webContents.send('present-media', 'video', getCleanPath(filePath), { width, height, time: currentTime, paused: true });
+            presentMedia('video', [getCleanPath(filePath), { width, height, time: currentTime, paused: true }], unpressActiveMediaButtons);
           }
         }
       };
@@ -946,7 +952,7 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
                       .find('#txtVideoDuration').val(formatTime(~~duration)).end()
                       .find('.duration').text(formatTime(~~duration)).end()
                       .modal({ backdrop: 'static', keyboard: false });
-                    winPresenter.webContents.send('present-media', 'video', getCleanPath(filePath), { width, height, time: currentTime });
+                    presentMedia('video', [getCleanPath(filePath), { width, height, time: currentTime }], unpressActiveMediaButtons);
                   }
                 }
               ]
@@ -1060,13 +1066,12 @@ function setDisplayTextListItem(jListItem, text, textIndex) {
         onclick: function() {
           var jThis = $(this);
           if (jThis.hasClass('active')) {
-            winPresenter.webContents.send('unpresent-media');
+            unpresentMedia();
           }
           else {
-            unpressActiveMediaButtons();
-            winPresenter.webContents.send('present-media', 'text', text.text);
+            presentMedia('text', [text.text], unpressActiveMediaButtons);
+            jThis.addClass('active');
           }
-          jThis.toggleClass('active');
         }
       },
       {
@@ -1356,20 +1361,23 @@ function onReady() {
     });
   });
 
-  $('.js-btn-set-media-dir').click(function() {
-    dialog.showOpenDialog({
-      properties: ['openDirectory'],
-      defaultPath: appSettings.get('displayDir')
-    }, function(dirPaths) {
-      if (dirPaths) {
-        var dirPath = dirPaths[0];
-        appSettings.set('displayDir', dirPath);
-        setDisplayDir(dirPath);
+  $('.js-btn-set-media-dir').click(() => {
+    dialog.showOpenDialog(
+      {
+        properties: ['openDirectory'],
+        defaultPath: appSettings.get('displayDir')
+      },
+      (dirPaths) => {
+        if (dirPaths) {
+          var dirPath = dirPaths[0];
+          appSettings.set('displayDir', dirPath);
+          setDisplayDir(dirPath);
+        }
       }
-    });
+    );
   });
 
-  $('.js-btn-refresh-media-dir').click(function() {
+  $('.js-btn-refresh-media-dir').click(() => {
     var dirPath = appSettings.get('displayDir');
     if (!isDirectorySync(dirPath)) {
       appSettings.set('displayDir', dirPath = undefined);
@@ -1377,48 +1385,47 @@ function onReady() {
     setDisplayDir(dirPath);
   });
 
-  $('#btnBGMusic').click(function() {
-    var wasPressed = $(this).hasClass('active');
-    unpressActiveMediaButtons();
+  $('#btnBGMusic').click(({target}) => {
+    var j = $(target);
+    var wasPressed = j.hasClass('active');
     // Done this way cuz of unpressActiveMediaButtons()
     if (wasPressed) {
-      winPresenter.webContents.send('unpresent-media');
+      unpresentMedia();
     }
     else {
-      $(this).addClass('active');
+      j.addClass('active');
     }
     onMusicEnd();
   });
 
-  $('#lblText').click(function() {
-    textEditor.focus();
-  });
+  $('#lblText').click(() => textEditor.focus());
 
-  $('#tdWrapAllTabs [data-toggle=tab]').click(function() {
-    appSettings.set('mainTabText', $(this).text());
+  $('#tdWrapAllTabs [data-toggle=tab]').click(({target}) => {
+    appSettings.set('mainTabText', $(target).text());
     $('#tdWrapAllTabs [role=tabpanelhead]').hide();
-    $(`#${$(this).data('panelhead')}`).show();
+    $(`#${$(target).data('panelhead')}`).show();
   });
 
-  $('#btnResetProp').click(function() {
+  $('#btnResetProp').click(() => {
     $('#txtPropName').data('index', null);
     $('#propsList > li.active > a').triggerHandler('click');
   });
 
   $('#btnSaveProp').click(() => updatePropCode(true));
 
-  $('#txtTextName').on('input', function() {
+  $('#txtTextName').on('input', (event) => {
     var texts = appSettings.get('texts', []);
-    var index = $(this).data('index');
+    var j = $(event.target);
+    var index = j.data('index');
     var text = texts[index];
     if (text) {
-      $('#textsList > li.text').eq(index).find('a').text(text.name = this.value);
+      $('#textsList > li.text').eq(index).find('a').text(text.name = j.val());
       appSettings.set('texts', texts);
       updateDisplayText(text, index);
     }
   });
 
-  $('#linkAddText').click(function() {
+  $('#linkAddText').click(() => {
     var texts = appSettings.get('texts', []);
     var index = texts.length;
     var text = {name:`Text #${index}`,text:''};
@@ -1437,7 +1444,7 @@ function onReady() {
     tabSize: 2,
     useSoftTabs: true
   });
-  textEditor.on('change', JS.debounce(function(e, editor) {
+  textEditor.on('change', JS.debounce((e, editor) => {
     var texts = appSettings.get('texts', []);
     var index = $('#txtTextName').data('index');
     var text = texts[index];
@@ -1461,16 +1468,15 @@ function onReady() {
   addKeyBindingsMenuTo(propCodeEditor);
 
   $('#modalMusic .btn-stop-music, #modalVideo .btn-stop-video').click(() => {
-    unpressActiveMediaButtons();
-    winPresenter.webContents.send('unpresent-media');
+    unpresentMedia();
   });
 
-  $('#modalVideo .range').on('change', function() {
-    $('#modalVideo .current-time').text(formatTime(~~this.value));
-    winPresenter.webContents.send('set-video-time', this.value);
+  $('#modalVideo .range').on('change', ({target}) => {
+    $('#modalVideo .current-time').text(formatTime(~~target.value));
+    winPresenter.webContents.send('set-video-time', target.value);
   });
 
-  $('#modalVideo .btn-pause-video').click(function() {
+  $('#modalVideo .btn-pause-video').click(() => {
     var isPaused = toggleVideoPauseButton();
     $('#modalVideo .range').prop('disabled', !isPaused);
     winPresenter.webContents.send('pause-video');
@@ -1485,8 +1491,8 @@ function onReady() {
     })
   );
 
-  $('#selWOLLangs').on('change', function() {
-    appSettings.set('wolLang', this.value);
+  $('#selWOLLangs').on('change', ({target}) => {
+    appSettings.set('wolLang', target.value);
     showWOLContent();
   });
 
@@ -1548,11 +1554,79 @@ function onReady() {
 }
 
 function initVues() {
-  bibleVue = new Vue({
+  window.bibleVue = bibleVue = new Vue({
     el: '#displayBibleWrap',
-    data: { hebrew: {}, greek: {} }
+    data: { hebrew: {}, greek: {}, book: null, chapterIndex: null, verseIndex: null },
+    methods: {
+      goToSettings() {
+        $('a[aria-controls=settingsPanel]')
+          .click()
+          .one('shown.bs.tab', () => {
+            $('a[aria-controls=collapseWOL].collapsed').click()[0];
+            $('#collapseWOL')[0].scrollIntoViewIfNeeded();
+          });
+      },
+      setBook(book) {
+        this.book = book;
+        this.chapterIndex = null;
+        this.verseIndex = null;
+        Vue.nextTick(function () {
+          $('a[aria-controls=collapseBibleChapters].collapsed').click()[0];
+        });
+      },
+      setChapterIndex(index) {
+        this.chapterIndex = index;
+        this.verseIndex = null;
+        Vue.nextTick(function () {
+          $('a[aria-controls=collapseBibleVerses].collapsed').click()[0];
+        });
+      },
+      setVerseIndex(index) {
+        this.verseIndex = this.verseIndex == index ? null : index;
+        if (this.verseIndex != null) {
+          var lang = $('#selWOLLangs').val();
+          var biblePath = path.join(USER_DATA_PATH, `bible-${lang}`);
+          var book = this.book;
+          var chapterIndex = this.chapterIndex;
+          var bookPath = path.join(biblePath, `${book.no} - ${book.name}.json`);
+          var bookData = fs.readJsonSync(bookPath, {encoding: 'utf8'});
+          var text = bookData.chapters[chapterIndex].verses[this.verseIndex];
+          var source = `${book.name} ${chapterIndex+1}:${this.verseIndex+1}`;
+          presentMedia('bible', [text.trim(), source], () => {this.verseIndex = null;});
+        }
+        else {
+          unpresentMedia();
+        }
+      }
+    }
   });
 }
+
+var [presentMedia, unpresentMedia] = (function(lastOnUnpresent) {
+  function callOnUnpresent(newOnUnpresent) {
+    try {
+      if (JS.isFunction(lastOnUnpresent)) {
+        lastOnUnpresent();
+      }
+    }
+    catch (e) {
+      throw e;
+    }
+    finally {
+      lastOnUnpresent = newOnUnpresent;
+    }
+  }
+  return [
+    function presentMedia(type, args, opt_onUnpresent) {
+      callOnUnpresent(opt_onUnpresent);
+      winPresenter.webContents.send.apply(winPresenter.webContents, ['present-media', type].concat(args));
+    },
+    function unpresentMedia() {
+      callOnUnpresent();
+      winPresenter.webContents.send('unpresent-media');
+    }
+  ];
+})();
 
 function addKeyBindingsMenuTo(editor) {
   editor.commands.addCommand({

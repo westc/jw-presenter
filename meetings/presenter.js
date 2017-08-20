@@ -41,6 +41,9 @@ const MEDIA_PRESENTERS = {
   text: function(strText) {
     appendMiddler(markdown.makeHtml(strText), 'showing-text');
   },
+  bible(text, source) {
+    appendMiddler(`<div class="scripture"><div class="text">${text}</div><div class="source">${source}</div></div>`, 'showing-text showing-bible-text');
+  },
   song: function({path, isBGMusic, lyrics: lyricsData, imagePaths, linesToShowAtEnd, secsDuration, secsDelay, secsToEndEarly, startPaused}) {
     if (isBGMusic) {
       if (!$('.body.active').is('.showing-background-music')) {

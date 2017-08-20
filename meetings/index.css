@@ -155,39 +155,46 @@ progress::-webkit-progress-value {
 }
 
 #displayBibleWrap h3 {
-    text-align: center;
-    text-shadow:
-        -0.05em -0.05em 0.1em #FFF,
-        0em 0em 0.2em #000;
+  text-align: center;
+  text-shadow:
+    -0.05em -0.05em 0.1em #FFF,
+    0em 0em 0.2em #000;
 }
-#displayBibleWrap > ul {
+#displayBibleWrap ul {
     list-style: none;
     padding: 0 1em;
     text-align: center;
 }
-#displayBibleWrap > ul > li.color1 {
-    --bgcolor: #08F;
+#displayBibleWrap ul > li.color1 {
+  --bgcolor: #08F;
 }
-#displayBibleWrap > ul > li.color2 {
-    --bgcolor: #06B;
+#displayBibleWrap ul > li.color2 {
+  --bgcolor: #06B;
 }
-#displayBibleWrap > ul > li.color3 {
-    --bgcolor: #047;
+#displayBibleWrap ul > li.color3 {
+  --bgcolor: #047;
 }
-#displayBibleWrap > ul > li {
-    display: inline-block;
-    background-color: var(--bgcolor);
-    color: #FFF;
-    padding: 0.75em;
-    margin: 0.25em;
-    border-radius: 0.25em;
-    box-shadow:
-        0 0 0.125em #000,
-        inset 0 0 0 0.25em var(--bgcolor),
-        inset 0 0 1em #000;
-    cursor: pointer;
-    transition: 0.5s ease all;
+#displayBibleWrap ul > li {
+  display: inline-block;
+  background-color: var(--bgcolor);
+  color: #FFF;
+  padding: 0.75em;
+  margin: 0.25em;
+  border-radius: 0.25em;
+  box-shadow:
+    0 0 0.125em #000,
+    inset 0 0 0 0.25em var(--bgcolor),
+    inset 0 0 1em #000;
+  cursor: pointer;
+  transition: 0.5s ease all;
+  position: relative;
 }
-#displayBibleWrap > ul > li:hover {
-    transform: scale(1.3, 1.3);
+#displayBibleWrap ul > li.selected {
+  transform: scale(1.2, 1.2);
+  filter: invert(25%);
+  z-index: 1;
+}
+#displayBibleWrap ul > li:hover {
+  transform: scale(1.3, 1.3);
+  z-index: 2;
 }
