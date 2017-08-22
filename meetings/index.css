@@ -160,41 +160,44 @@ progress::-webkit-progress-value {
     -0.05em -0.05em 0.1em #FFF,
     0em 0em 0.2em #000;
 }
-#displayBibleWrap ul {
-    list-style: none;
-    padding: 0 1em;
-    text-align: center;
+#displayBibleWrap .btn-bible.color1 {
+  --hue: 110deg;
 }
-#displayBibleWrap ul > li.color1 {
-  --bgcolor: #08F;
+#displayBibleWrap .btn-bible.color2 {
+  --hue: 80deg;
 }
-#displayBibleWrap ul > li.color2 {
-  --bgcolor: #06B;
+#displayBibleWrap .btn-bible.color3 {
+  --hue: 50deg;
 }
-#displayBibleWrap ul > li.color3 {
-  --bgcolor: #047;
-}
-#displayBibleWrap ul > li {
-  display: inline-block;
-  background-color: var(--bgcolor);
-  color: #FFF;
-  padding: 0.75em;
+#displayBibleWrap .btn-bible {
+  filter: hue-rotate(var(--hue));
   margin: 0.25em;
-  border-radius: 0.25em;
-  box-shadow:
-    0 0 0.125em #000,
-    inset 0 0 0 0.25em var(--bgcolor),
-    inset 0 0 1em #000;
-  cursor: pointer;
-  transition: 0.5s ease all;
+}
+#cropper {
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+#cropper {
+  background-size: cover;
   position: relative;
+  width: 100%;
 }
-#displayBibleWrap ul > li.selected {
-  transform: scale(1.2, 1.2);
-  filter: invert(25%);
-  z-index: 1;
+#cropper .point {
+  width: 6px;
+  height: 6px;
+  position: absolute;
+  background-color: rgba(255,255,255,0.75);
+  top: calc(var(--top) * 100% - 3px);
+  left: calc(var(--left) * 100% - 3px);
+  cursor: pointer;
+  box-shadow: 0 0 1px 1px rgba(0,0,0,0.75);
 }
-#displayBibleWrap ul > li:hover {
-  transform: scale(1.3, 1.3);
-  z-index: 2;
+#cropper .overlay {
+  background-color: rgba(0,0,0,0.5);
+  position: absolute;
+  top: calc(var(--top) * 100%);
+  left: calc(var(--left) * 100%);
+  right: calc(var(--right) * 100%);
+  bottom: calc(var(--bottom) * 100%);
 }

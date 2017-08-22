@@ -114,8 +114,7 @@
                           </div>
                           <div id="collapseHebrew" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingHebrew">
                             <div class="panel-body">
-                              <ul v-if="hebrew && hebrew.books">
-                                <li v-for="bookItem in hebrew.books" v-bind:class="'color' + bookItem.color + ((book && book.name == bookItem.name) ? ' selected' : '')" v-on:click="setBook(bookItem)">{{ bookItem.name }}</li>
+                              <button v-if="hebrew && hebrew.books" v-for="bookItem in hebrew.books" v-bind:class="'btn btn-primary btn-bible color' + bookItem.color + ((book && book.name == bookItem.name) ? ' active' : '')" v-on:click="setBook(bookItem)">{{ bookItem.name }}</button>
                               </ul>
                             </div>
                           </div>
@@ -131,9 +130,7 @@
                           </div>
                           <div id="collapseGreek" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingGreek">
                             <div class="panel-body">
-                              <ul v-if="greek && greek.books">
-                                <li v-for="bookItem in greek.books" v-bind:class="'color' + bookItem.color + ((book && book.name == bookItem.name) ? ' selected' : '')" v-on:click="setBook(bookItem)">{{ bookItem.name }}</li>
-                              </ul>
+                              <button v-if="greek && greek.books" v-for="bookItem in greek.books" v-bind:class="'btn btn-primary btn-bible color' + bookItem.color + ((book && book.name == bookItem.name) ? ' active' : '')" v-on:click="setBook(bookItem)">{{ bookItem.name }}</button>
                             </div>
                           </div>
                         </div><!--/.panel for Greek Books-->
@@ -148,9 +145,7 @@
                           </div>
                           <div id="collapseBibleChapters" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBibleChapters">
                             <div class="panel-body">
-                              <ul>
-                                <li v-for="(verseCount, index) in book.chapters" v-bind:class="'color' + book.color + (chapterIndex == index ? ' selected' : '')" v-on:click="setChapterIndex(index)">{{ index + 1 }}</li>
-                              </ul>
+                              <button v-for="(verseCount, index) in book.chapters" v-bind:class="'btn btn-primary btn-bible color' + book.color + (chapterIndex == index ? ' selected' : '')" v-on:click="setChapterIndex(index)">{{ index + 1 }}</button>
                             </div>
                           </div>
                         </div><!--/.panel for Bible Chapters-->
@@ -165,9 +160,7 @@
                           </div>
                           <div id="collapseBibleVerses" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBibleVerses">
                             <div class="panel-body">
-                              <ul>
-                                <li v-for="(value, index) in (new Array(book.chapters[chapterIndex]))" v-bind:class="'color' + book.color + (verseIndex == index ? ' selected' : '')" v-on:click="setVerseIndex(index)">{{ index + 1 }}</li>
-                              </ul>
+                              <button v-for="(value, index) in (new Array(book.chapters[chapterIndex]))" v-bind:class="'btn btn-primary btn-bible color' + book.color + (verseIndex == index ? ' selected' : '')" v-on:click="setVerseIndex(index)">{{ index + 1 }}</button>
                             </div>
                           </div>
                         </div><!--/.panel for Bible Verses-->
@@ -461,6 +454,40 @@
         </div><!-- /.modal-content -->
       </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+
+    <div id="modalImage" class="modal fade" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-body">
+            <div id="cropper">
+              <div v-for="overlay in overlays"
+                   v-bind:style="'--top:' + overlay.top + '; --left:' + overlay.left + '; --right:' + overlay.right + '; --bottom:' + overlay.bottom + ';'"
+                   class="overlay"
+              ></div>
+              <div v-for="point in points"
+                   v-bind:style="'--top:' + point.y + '; --left:' + point.x + ';'"
+                   class="point"
+                     v-on:mousedown="mouseDown($event, point)"
+              ></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" v-on:click="update">
+              <span class="glyphicon glyphicon-picture" aria-hidden="true"></span>
+              Update
+            </button>
+            <button type="button" class="btn btn-success" v-on:click="reset">
+              <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+              Reset
+            </button>
+            <button type="button" class="btn btn-danger" data-dismiss="modal" v-on:click="close">
+              <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+              Close
+            </button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /#modalImage -->
 
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="../bootstrap-3.3.7/js/bootstrap.min.js"></script>

@@ -26,6 +26,7 @@ const isDirectorySync = pathToCheck => (fs.existsSync(pathToCheck) || undefined)
 var textEditor, propCodeEditor;
 
 var bibleVue,
+    cropperVue,
     translations,
     lastSongIndex,
     musicImagesPaths = [],
@@ -592,7 +593,7 @@ function playSongAt(songIndex, isBGMusic, opt_lyricsIndex, opt_startPaused) {
       secsToEndEarly: 2,
       startPaused: opt_startPaused
     }],
-    unpressActiveMediaButtons
+    isBGMusic ? null : unpressActiveMediaButtons
   );
 
   toggleMusicPauseButton(!!opt_startPaused);
@@ -896,13 +897,20 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
         onclick() {
           if (isImage) {
             var jThis = $(this);
-            if (jThis.hasClass('active')) {
-              unpresentMedia();
-            }
-            else {
-              presentMedia('image', [getCleanPath(filePath), { width, height}], unpressActiveMediaButtons);
-              jThis.addClass('active');
-            }
+            $('#modalImage')
+              .modal({ backdrop: 'static', keyboard: false })
+              .one('shown.bs.modal', () => {
+                var size = aspectFor(width, height, $('#cropper').width(), 400);
+                cropperVue.width = width;
+                cropperVue.height = height;
+                cropperVue.filePath = getCleanPath(filePath);
+                cropperVue.reset();
+                $('#cropper').css({
+                  height: size.height + 'px',
+                  backgroundImage: `url("${getCleanPath(filePath)}"`
+                });
+              });
+            presentMedia('image', [getCleanPath(filePath), { width, height}]);
           }
           else {
             var currentTime = parseTime(jContentWrap.find(':text.time').val()),
@@ -1115,7 +1123,6 @@ function updateDisplayText(text, i) {
 }
 
 function onMusicEnd() {
-  console.log('onMusicEnd:', {time: JS.now(), arguments,"$('#btnBGMusic').hasClass('active')": $('#btnBGMusic').hasClass('active')});
   if ($('#btnBGMusic').hasClass('active')) {
     var songIndex = executePropFunc('song-randomizer', [songs, lastSongIndex]);
     var song = songs[songIndex = songIndex == undefined ? JS.random(songs.length - 1, true) : songIndex];
@@ -1545,6 +1552,26 @@ function onReady() {
     });
   });
 
+  $(window).on('mousemove', function(event) {
+    var j = $('#cropper'),
+        offset = j.offset(),
+        w = j.innerWidth(),
+        h = j.innerHeight(),
+        x = Math.min(Math.max(0, event.pageX - offset.left), w) / w,
+        y = Math.min(Math.max(0, event.pageY - offset.top), h) / h;
+    // For the first point that is found moving...
+    for (var movingPoint, movingIndex = cropperVue.points.length; movingIndex-- > 0; ) {
+      movingPoint = cropperVue.points[movingIndex];
+      if (movingPoint.point.moving) {
+        var fnName = movingIndex % 2 ? 'max' : 'min';
+        var candidate = movingIndex < 2 ? x : y;
+        var extreme = cropperVue.points[movingIndex - 2 * (movingIndex % 2 - 0.5)].point.value;
+        movingPoint.point.value = Math[fnName](candidate, extreme);
+        break;
+      }
+    }
+  });
+
   loadSettings();
 
   initVues();
@@ -1554,7 +1581,7 @@ function onReady() {
 }
 
 function initVues() {
-  window.bibleVue = bibleVue = new Vue({
+  bibleVue = new Vue({
     el: '#displayBibleWrap',
     data: { hebrew: {}, greek: {}, book: null, chapterIndex: null, verseIndex: null },
     methods: {
@@ -1597,6 +1624,70 @@ function initVues() {
         else {
           unpresentMedia();
         }
+      }
+    }
+  });
+  cropperVue = new Vue({
+    el: '#modalImage',
+    data: {
+      width: null,
+      height: null,
+      filePath: null,
+      xPoints: [
+        { value: 0.25, moving: false },
+        { value: 0.75, moving: false }
+      ],
+      yPoints: [
+        { value: 0.25, moving: false },
+        { value: 0.75, moving: false }
+      ]
+    },
+    methods: {
+      mouseDown(event, thisPoint) {
+        $(window).one('mouseup', function() {
+          thisPoint.point.moving = false;
+        });
+        thisPoint.point.moving = true;
+        event.preventDefault();
+      },
+      reset() {
+        this.points.forEach(({point}, index) => JS.extend(point, { value: index % 2, moving: false }));
+      },
+      update() {
+        var img = new Image();
+        img.onload = () => {
+          var x = cropperVue.xPoints[0].value * cropperVue.width;
+          var y = cropperVue.yPoints[0].value * cropperVue.height;
+          var w = cropperVue.xPoints[1].value * cropperVue.width - x;
+          var h = cropperVue.yPoints[1].value * cropperVue.height - y;
+          var canvas = JS.dom({ _: 'canvas', width: w, height: h });
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+          presentMedia('image', [canvas.toDataURL(), { width: w, height: h}]);
+        };
+        img.src = cropperVue.filePath;
+      },
+      close() {
+        unpresentMedia();
+      }
+    },
+    computed: {
+      points: function() {
+        var midX = (this.xPoints[0].value + this.xPoints[1].value) / 2;
+        var midY = (this.yPoints[0].value + this.yPoints[1].value) / 2;
+        return this.xPoints.concat(this.yPoints).map(function(point, index) {
+          var newPoint = index < 2 ? { x: point.value, y: midY } : { x: midX, y: point.value };
+          newPoint.point = point;
+          return newPoint;
+        });
+      },
+      overlays: function() {
+        return [
+          { left: 0, right: 1 - this.xPoints[0].value, top: 0, bottom: 1 - this.yPoints[1].value },
+          { left: 0, right: 1 - this.xPoints[1].value, top: this.yPoints[1].value, bottom: 0 },
+          { left: this.xPoints[1].value, right: 0, top: this.yPoints[0].value, bottom: 0 },
+          { left: this.xPoints[0].value, right: 0, top: 0, bottom: 1 - this.yPoints[0].value }
+        ];
       }
     }
   });
@@ -1830,6 +1921,11 @@ function fitInto(desiredWidth, desiredHeight, actualWidth, actualHeight) {
     desiredWidth = desiredHeight = NaN;
   }
   return { width: desiredWidth, height: desiredHeight };
+}
+
+function aspectFor(width, height, maxWidth, maxHeight, opt_cover) {
+  var w = Math[opt_cover ? 'max' : 'min'](maxHeight * width / height, maxWidth);
+  return { width: w, height: w * height / width };
 }
 
 $(onReady);
