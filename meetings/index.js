@@ -900,13 +900,14 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
             $('#modalImage')
               .modal({ backdrop: 'static', keyboard: false })
               .one('shown.bs.modal', () => {
-                var size = aspectFor(width, height, $('#cropper').width(), 400);
+                var size = aspectFor(width, height, $('#cropper').parent().width(), 400);
                 cropperVue.width = width;
                 cropperVue.height = height;
                 cropperVue.filePath = getCleanPath(filePath);
                 cropperVue.reset();
                 $('#cropper').css({
-                  height: size.height + 'px',
+                  height: `${size.height}px`,
+                  width: `${size.width}px`,
                   backgroundImage: `url("${getCleanPath(filePath)}"`
                 });
               });
