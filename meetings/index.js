@@ -295,13 +295,13 @@ function getVideoImage(videoPath, secs, callback) {
   video.onerror = function(event) {
     callback.call(me, undefined, {path: videoPath, event: event});
   };
-  video.src = videoPath.replace(/\?/g, '%3F');
+  video.src = getCleanPath(videoPath);
 }
 
 function getAudioDuration(audioPath, callback) {
   JS.dom({
     _: 'audio',
-    src: audioPath.replace(/\?/g, '%3F'),
+    src: getCleanPath(audioPath),
     onloadedmetadata: function(e) {
       callback(e, this.duration);
     },
@@ -804,7 +804,7 @@ function setDisplayDir(dirPath) {
   }
 }
 
-var getCleanPath = filePath => /^(ftp|https?):/i.test(filePath) ? filePath : filePath.replace(/[#\?]/g, JS.escape);
+var getCleanPath = filePath => filePath.replace(/^(ftp|https?):/i.test(filePath) ? /#/g : /[#\?]/g, JS.escape);
 
 function getImageSize(src, callback) {
   JS.extend(i = new Image, {
@@ -819,7 +819,7 @@ function setDisplayListItem(jListItem, filePath, data, opt_img) {
   var isImage = !opt_img;
   if (isImage) {
     opt_img = new Image();
-    opt_img.src = filePath;
+    opt_img.src = getCleanPath(filePath);
   }
 
   var basename = path.basename(filePath),
@@ -1597,16 +1597,12 @@ function initVues() {
         this.book = book;
         this.chapterIndex = null;
         this.verseIndex = null;
-        Vue.nextTick(function () {
-          $('a[aria-controls=collapseBibleChapters].collapsed').click()[0];
-        });
+        Vue.nextTick(() => $('a[aria-controls=collapseBibleChapters].collapsed').click()[0]);
       },
       setChapterIndex(index) {
         this.chapterIndex = index;
         this.verseIndex = null;
-        Vue.nextTick(function () {
-          $('a[aria-controls=collapseBibleVerses].collapsed').click()[0];
-        });
+        Vue.nextTick(() => $('a[aria-controls=collapseBibleVerses].collapsed').click()[0]);
       },
       setVerseIndex(index) {
         this.verseIndex = this.verseIndex == index ? null : index;
@@ -1669,7 +1665,7 @@ function initVues() {
           ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
           presentMedia('image', [canvas.toDataURL(), { width: w, height: h}]);
         };
-        img.src = cropperVue.filePath;
+        img.src = getCleanPath(cropperVue.filePath);
       },
       close() {
         unpresentMedia();
