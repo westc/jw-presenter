@@ -1581,7 +1581,7 @@ function onReady() {
 }
 
 function initVues() {
-  bibleVue = new Vue({
+  window.bibleVue = bibleVue = new Vue({
     el: '#displayBibleWrap',
     data: { hebrew: {}, greek: {}, book: null, chapterIndex: null, verseIndex: null },
     methods: {
@@ -1619,7 +1619,11 @@ function initVues() {
           var bookData = fs.readJsonSync(bookPath, {encoding: 'utf8'});
           var text = bookData.chapters[chapterIndex].verses[this.verseIndex];
           var source = `${book.name} ${chapterIndex+1}:${this.verseIndex+1}`;
-          presentMedia('bible', [text.trim(), source], () => {this.verseIndex = null;});
+          presentMedia('bible', [text.trim(), source], (type, text, source) => {
+            if (type != 'bible') {
+              this.verseIndex = null;
+            }
+          });
         }
         else {
           unpresentMedia();
@@ -1694,10 +1698,10 @@ function initVues() {
 }
 
 var [presentMedia, unpresentMedia] = (function(lastOnUnpresent) {
-  function callOnUnpresent(newOnUnpresent) {
+  function callOnUnpresent(newOnUnpresent, argsNew) {
     try {
       if (JS.isFunction(lastOnUnpresent)) {
-        lastOnUnpresent();
+        lastOnUnpresent.apply(null, argsNew);
       }
     }
     catch (e) {
@@ -1709,8 +1713,9 @@ var [presentMedia, unpresentMedia] = (function(lastOnUnpresent) {
   }
   return [
     function presentMedia(type, args, opt_onUnpresent) {
-      callOnUnpresent(opt_onUnpresent);
-      winPresenter.webContents.send.apply(winPresenter.webContents, ['present-media', type].concat(args));
+      var argsSlice1 = [type].concat(args);
+      callOnUnpresent(opt_onUnpresent, argsSlice1);
+      winPresenter.webContents.send.apply(winPresenter.webContents, ['present-media'].concat(argsSlice1));
     },
     function unpresentMedia() {
       callOnUnpresent();

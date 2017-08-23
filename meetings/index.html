@@ -145,7 +145,7 @@
                           </div>
                           <div id="collapseBibleChapters" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBibleChapters">
                             <div class="panel-body">
-                              <button v-for="(verseCount, index) in book.chapters" v-bind:class="'btn btn-primary btn-bible color' + book.color + (chapterIndex == index ? ' selected' : '')" v-on:click="setChapterIndex(index)">{{ index + 1 }}</button>
+                              <button v-for="(verseCount, index) in book.chapters" v-bind:class="'btn btn-primary btn-bible color' + book.color + (chapterIndex == index ? ' active' : '')" v-on:click="setChapterIndex(index)">{{ index + 1 }}</button>
                             </div>
                           </div>
                         </div><!--/.panel for Bible Chapters-->
@@ -160,7 +160,7 @@
                           </div>
                           <div id="collapseBibleVerses" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBibleVerses">
                             <div class="panel-body">
-                              <button v-for="(value, index) in (new Array(book.chapters[chapterIndex]))" v-bind:class="'btn btn-primary btn-bible color' + book.color + (verseIndex == index ? ' selected' : '')" v-on:click="setVerseIndex(index)">{{ index + 1 }}</button>
+                              <button v-for="(value, index) in (new Array(book.chapters[chapterIndex]))" v-bind:class="'btn btn-primary btn-bible color' + book.color + (verseIndex == index ? ' active' : '')" v-on:click="setVerseIndex(index)">{{ index + 1 }}</button>
                             </div>
                           </div>
                         </div><!--/.panel for Bible Verses-->
