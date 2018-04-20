@@ -725,7 +725,7 @@ var generateMetaData = (function(argsStack, blocked) {
           }
         },
         function (img, currentTime, event) {
-          if (event.type != 'error') {
+          if (!event || event.type != 'error') {
             var buf = new Buffer(img.src.replace(/^data:image\/\w+;base64,/, ""), 'base64');
             fs.writeFileSync(path.join(path.dirname(file.path), '.jw-videos', file.vid.name + '.png'), buf);
             JS.extend(file.vid, { has_thumbnail: true, width: img.width, height: img.height });
