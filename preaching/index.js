@@ -8,7 +8,9 @@ const USER_SETTINGS_PATH = path.join(USER_DATA_PATH, 'preaching-settings.json');
 
 var isPlayingAll = false, isPlaying = false, isToShowSlides = false, videoFiles = [], randomOrder = [], lastIndexInRandom = 0;
 
-var appSettings = window.appSettings = {
+var detailsVue;
+
+var appSettings = {
   _: (function() {
     var data = { code: '' };
     try {
@@ -175,141 +177,14 @@ function showPreviewSlides(file) {
 }
 
 function showDetailSlides(file, imagesIndex) {
-  var sw = screen.width, sh = screen.height;
-
-  var jList = $('#olSlideList');
-
-  var imageURLs = jList.find('.slide-thumbnail').map(function(i, elem) {
-    return $(elem).data('img-url');
-  }).toArray();
-
-  jList.html('').append(
-    file.vid.slides.map(function(slide, slideIndex, slides) {
-      var updateVideoImage = JS.debounce(function(time) {
-        function setBGVideoImage(img) {
-          var jDiv = $('.slide-thumbnail', li);
-
-          maximizeFontSize(
-            jDiv.css({
-                  backgroundImage: JS.sub("url('{}')", img.src),
-                  height: (sh * jDiv.width() / sw) + 'px'
-                })
-                .data('img-url', img.src)
-                .find('.text')[0]
-          );
-        }
-
-        var img, imageIndex = imagesIndex && imagesIndex[slideIndex];
-        if (imageIndex != undefined) {
-          imagesIndex[slideIndex] = undefined;
-          setBGVideoImage({ src: imageURLs[imageIndex] });
-        }
-        else {
-          getVideoImage(file.path.replace(/\?/g, '%3F'), {time}, setBGVideoImage);
-        }
-      }, 250);
-
-      var li = JS.dom({
-        _: 'li',
-        cls: 'slide',
-        $: [
-          {
-            _: 'div',
-            $: [
-              'Slide ',
-              {
-                _: 'select',
-                $: JS.range(slides.length).map(function(i) {
-                  return { _: 'option', text: i + 1, selected: i == slideIndex };
-                }),
-                onchange: function() {
-                  var imagesIndex = JS.range(slides.length);
-                  imagesIndex.splice(this.selectedIndex, 0, imagesIndex.splice(slideIndex, 1)[0]);
-                  slides.splice(this.selectedIndex, 0, slides.splice(slideIndex, 1)[0]);
-                  showDetailSlides(file, imagesIndex);
-                }
-              },
-              JS.sub(' of {} ', slides.length),
-              {
-                _: 'button',
-                type: 'button',
-                cls: 'btn btn-danger',
-                $: { _: 'i', cls: 'glyphicon glyphicon-trash' },
-                onclick: function() {
-                  var imagesIndex = JS(slides.length).range().splice(slideIndex, 1).$;
-                  slides.splice(slideIndex, 1);
-                  showDetailSlides(file, imagesIndex);
-                }
-              }
-            ]
-          },
-          {
-            _: 'div',
-            cls: 'slide-thumbnail',
-            $: {
-              _: 'div',
-              cls: 'text',
-              text: slide.text
-            }
-          },
-          {
-            _: 'div',
-            $: [
-              {
-                _: 'table',
-                cls: 'table-time',
-                border: 0,
-                cellPadding: 0,
-                cellSpacing: 0,
-                $: {
-                  _: 'tr',
-                  $: [
-                    {
-                      _: 'td',
-                      cls: 'td-text',
-                      $: { _: 'input', type: 'text', cls: 'time', readOnly: true, size: 5 }
-                    },
-                    {
-                      _: 'td',
-                      cls: 'td-range',
-                      $: {
-                        _: 'input',
-                        type: 'range',
-                        min: 0,
-                        max: Math.floor(file.vid.duration),
-                        value: slide.time,
-                        oninput: function() {
-                          updateVideoImage(this.value);
-                          $(this).parents('tr:eq(0)').find('.time').val(formatTime(this.value));
-                          slide.time = +this.value;
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            _: 'div',
-            $: [
-              {
-                _: 'input',
-                type: 'text',
-                cls: 'text',
-                value: slide.text,
-                placeholder: JS.sub('Text for slide {} of {}.', slideIndex + 1, slides.length),
-                oninput: function () {
-                  maximizeFontSize($(this).parents('.slide').find('.slide-thumbnail .text').text(slide.text = this.value)[0]);
-                }
-              }
-            ]
-          }
-        ]
-      });
-      $('input[type=range]', li).triggerHandler('input');
-      return li;
-    })
+  editVue.file = file;
+  editVue.slides.splice.apply(
+    editVue.slides,
+    [0, Infinity].concat(file.vid.slides.map(function(slide) {
+      slide = JS.extend({}, slide);
+      slide.image = !!slide.image;
+      return slide;
+    }))
   );
 }
 
@@ -411,7 +286,7 @@ function updateVideoDetails(td, file) {
                 {
                   _: 'button', type: 'button', cls: 'btn btn-default btn-play', title: 'Play', $: [
                     { _: 'span', cls: 'glyphicon glyphicon-play', 'aria-hidden': true },
-                    ' Play'
+                    ' Reproducir'
                   ]
                 }
                 /*** COMMENTED THIS OUT UNTIL I IMPLEMENT A BETTER WAY TO GO FULLSCREEN WITHOUT USER GESTURES ***/
@@ -437,7 +312,7 @@ function updateVideoDetails(td, file) {
                   $: {
                     _: 'button', type: 'button', cls: 'btn btn-default btn-playSlides', title: 'Edit', $: [
                       { _: 'span', cls: 'glyphicon glyphicon-picture', 'aria-hidden': true },
-                      ' Show Slides'
+                      ' Diapositivas'
                     ]
                   }
                 };
@@ -449,7 +324,7 @@ function updateVideoDetails(td, file) {
               $: {
                 _: 'button', type: 'button', cls: 'btn btn-default btn-edit', title: 'Edit', $: [
                   { _: 'span', cls: 'glyphicon glyphicon-edit', 'aria-hidden': true },
-                  ' Edit'
+                  ' Editar'
                 ]
               }
             }
@@ -460,7 +335,7 @@ function updateVideoDetails(td, file) {
     {
       _: 'div',
       $: [
-        { _: 'b', text: 'Duration: ' },
+        { _: 'b', text: 'Duración: ' },
         { _: 'span', cls: 'duration' }
       ]
     },
@@ -468,7 +343,7 @@ function updateVideoDetails(td, file) {
       if (file.vid.keywords.length) {
         return {
           _: 'div',
-          $: [ { _: 'b', text: 'Keywords:' } ].concat(file.vid.keywords.map(function(keyword) {
+          $: [ { _: 'b', text: 'Palabras claves:' } ].concat(file.vid.keywords.map(function(keyword) {
             return { _: 'span', cls: 'keyword', text: keyword };
           }))
         };
@@ -513,20 +388,19 @@ function showVids(files) {
               .find('.form-new-keyword').unbind('submit').on('submit', addKeywordToFile)
                 .find('#btnAddKeywords').unbind('click').click(addKeywordToFile).end()
                 .end()
-              .find('#btnAddSlide').unbind('click').click(addSlideToFile).end()
               .find('.nav-tabs > li:eq(0) > a').tab('show').end()
               .find('.nav-tabs > li:eq(1) > a').one('shown.bs.tab', JS.partial(showDetailSlides, file, null)).end()
               // .find('.nav-tabs > li:eq(2) > a').one('shown.bs.tab', JS.partial(showPreviewSlides, file, null)).end()
               .one('shown.bs.modal', function() {
                 jModal.find('#txtVidTitle').focus();
               })
-              .modal('show');
+              .modal({ backdrop: 'static', keyboard: false });
           }
           else if ($(e.target).is('.btn-play, .btn-play *, :not(.buttons *)')) {
             showVideo(file);
           }
           else if ($(e.target).is(':not(.disabled) > .btn-playSlides')) {
-            $('#slideWrap').data('slide-file', file).data('slide-index', 0)[0].webkitRequestFullScreen();;
+            $('#slideWrap').data('slide-file', file).data('slide-index', 0)[0].webkitRequestFullScreen();
             showSlides();
           }
           else if ($(e.target).is(':not(.disabled) > .btn-playWithSlides')) {
@@ -599,13 +473,11 @@ function showSlides(opt_offset) {
   jSlideWrap.find('.previous')[slideIndex > 0 ? 'removeClass' : 'addClass']('disabled');
   jSlideWrap.find('.next')[slideIndex + 1 < slides.length ? 'removeClass' : 'addClass']('disabled');
 
-  getVideoImage(file.path.replace(/\?/g, '%3F'), {time: slide.time}, function(img, time, errEvent) {
-    if (!errEvent) {
-      maximizeFontSize(
-        jSlideWrap.css('background-image', JS.sub("url('{}')", img.src))
-          .find('.text').text(slide.text)[0]
-      );
-    }
+  ensureSlideImage(slide, file, (slideImagePath, newlyCreated) => {
+    maximizeFontSize(
+      jSlideWrap.css('background-image', JS.sub("url('{}')", slideImagePath.replace(/\\/g, '/').replace(/'/g, "\\'")))
+        .find('.text').text(slide.text)[0]
+    );
   });
 }
 
@@ -617,7 +489,7 @@ function showThumbnail(file, div) {
   function callback() {
     $('.video-thumbnail', div).append(JS.dom({
       _: 'img',
-      src: path.join(path.dirname(file.path), '.jw-videos', file.vid.name + '.png').replace(/\?/g, '%3F')
+      src: path.join(path.dirname(file.path), '.jw-presenter', file.vid.name + '.png').replace(/\?/g, '%3F')
     }));
     showDuration(file, div);
   }
@@ -727,7 +599,7 @@ var generateMetaData = (function(argsStack, blocked) {
         function (img, currentTime, event) {
           if (!event || event.type != 'error') {
             var buf = new Buffer(img.src.replace(/^data:image\/\w+;base64,/, ""), 'base64');
-            fs.writeFileSync(path.join(path.dirname(file.path), '.jw-videos', file.vid.name + '.png'), buf);
+            fs.writeFileSync(path.join(path.dirname(file.path), '.jw-presenter', file.vid.name + '.png'), buf);
             JS.extend(file.vid, { has_thumbnail: true, width: img.width, height: img.height });
             file.saveIndex();
           }
@@ -747,7 +619,7 @@ var generateMetaData = (function(argsStack, blocked) {
 })([], false);
 
 function refreshIndex(dirPath, files) {
-  var jwvPath = path.join(dirPath, '.jw-videos'),
+  var jwvPath = path.join(dirPath, '.jw-presenter'),
       indexPath = path.join(jwvPath, 'index.json');
   if (!fs.existsSync(jwvPath)) {
     fs.mkdirSync(jwvPath);
@@ -817,11 +689,11 @@ function refreshIndex(dirPath, files) {
 function updateVid(vid, file) {
   if (vid.has_thumbnail) {
     try {
-      var oldThumbnailPath = path.join(path.dirname(file.path), '.jw-videos', vid.name + '.png');
+      var oldThumbnailPath = path.join(path.dirname(file.path), '.jw-presenter', vid.name + '.png');
       if (!fs.existsSync(oldThumbnailPath)) {
         throw 0;
       }
-      var newThumbnailPath = path.join(path.dirname(file.path), '.jw-videos', path.basename(file.path) + '.png');
+      var newThumbnailPath = path.join(path.dirname(file.path), '.jw-presenter', path.basename(file.path) + '.png');
       fs.renameSync(oldThumbnailPath, newThumbnailPath);
     }
     catch(e) {
@@ -883,7 +755,7 @@ function setDirPath(dirPath, clearHistory) {
             }
           });
 
-          // Create .jw-videos directory if this directory has MP4s.
+          // Create .jw-presenter directory if this directory has MP4s.
           if (vidsAtStart < videoFiles.length) {
             refreshIndex(dir.path, videoFiles.slice(vidsAtStart));
           }
@@ -926,44 +798,10 @@ function setDirPath(dirPath, clearHistory) {
 }
 
 function showTimesShown() {
-  var history = JS.get(appSettings.get('last'), 'history', []);
-  $('#detailsModal .modal-body').html('')
-    .append(JS([
-      {
-        _: 'div',
-        text: JS.sub('You have shown {0?{0}:one} video{0?s:}.', [history.length])
-      },
-      {
-        _: 'table',
-        cls: 'table table-striped table-hover',
-        $: [
-          {
-            _: 'thead',
-            $: [
-              { 
-                _: 'tr',
-                $: [
-                  { _: 'th', text: 'Time Shown' },
-                  { _: 'th', text: 'File Name' }
-                ]
-              }
-            ]
-          },
-          {
-            _: 'tbody',
-            $: history.map(function(item) {
-              return {
-                _: 'tr',
-                $: [
-                  { _: 'td', text: JS.formatDate(new Date(item.time), "DDD, MMM D, YYYY 'at' h:mm:ss A") },
-                  { _: 'td', text: path.basename(item.path) }
-                ]
-              };
-            }).reverse()
-          }
-        ] 
-      }
-    ]).map('dom').$);
+  detailsVue.history.splice.apply(
+    detailsVue.history,
+    [0, Infinity].concat(JS.get(appSettings.get('last'), 'history', []))
+  );
 }
 
 function incrementVideoCount() {
@@ -983,8 +821,8 @@ function filterVideos() {
   var arrVideoData = videoFiles.map(function(file) {
     return {
       text: file.vid.title + ' ' +  file.vid.keywords.join(','),
-      '@slides': file.vid.slides.length > 0,
-      '@keywords': file.vid.keywords.length > 0,
+      '@diapositivas': file.vid.slides.length > 0,
+      '@claves': file.vid.keywords.length > 0,
       duration: ~~(file.vid.duration / 60)
     };
   });
@@ -995,7 +833,116 @@ function filterVideos() {
   appSettings.set('searchTerm', searchTerm);
 }
 
+function getImagePathParts(slide, file) {
+  let filePath = file.path,
+    jwpPath = path.join(path.dirname(filePath), '.jw-presenter');
+  return {
+    filePath,
+    jwpPath,
+    slideImagePath: path.join(
+      jwpPath,
+      path.basename(filePath) + '-' + JS.round(slide.time, 2)
+    )
+  };
+}
+
+function ensureSlideImage(slide, file, opt_callback) {
+  let { filePath, jwpPath, slideImagePath } = getImagePathParts(slide, file);
+  if (!slide.image || !fs.existsSync(slideImagePath)) {
+    if (!fs.existsSync(jwpPath)) {
+      fs.mkdirSync(jwpPath);
+    }
+    getVideoImage(
+      filePath.replace(/\?/g, '%3F'),
+      { time: slide.time },
+      function (img) {
+        let data = img.src.replace(/^data:image\/\w+;base64,/, '');
+        fs.writeFileSync(slideImagePath, new Buffer(data, 'base64'));
+        slide.image = true;
+        opt_callback && opt_callback(slideImagePath, true);
+      }
+    );
+  }
+  else {
+    opt_callback && opt_callback(slideImagePath, false);
+  }
+}
+
 function initVues() {
+  detailsVue = new Vue({
+    el: '#detailsModal',
+    data: {
+      history: []
+    },
+    methods: {
+      ref: function(name) {
+        return window[name];
+      },
+      basename: function (pathname) {
+        return path.basename(pathname);
+      }
+    }
+  });
+
+  editVue = new Vue({
+    el: '#editModal',
+    data: {
+      file: null,
+      slides: []
+    },
+    updated() {
+      this.ensureSlideImages();
+    },
+    mounted() {
+      this.ensureSlideImages();
+    },
+    computed: {
+      screenRatio() {
+        return screen.height / screen.width;
+      }
+    },
+    watch: {
+      slides: {
+        handler() {
+          let thisVue = this;
+          thisVue.slides.forEach((slide, slideIndex) => {
+            if (!fs.existsSync(thisVue.getImagePathParts(slide).slideImagePath)) {
+              slide.image = false;
+              ensureSlideImage(slide, thisVue.file);
+            }
+            if (!JS.has(thisVue.file.vid.slides, slideIndex)) {
+              thisVue.file.vid.slides[slideIndex] = {};
+            }
+            JS.extend(thisVue.file.vid.slides[slideIndex], slide);
+          });
+        },
+        deep: true
+      }
+    },
+    methods: {
+      addSlide() {
+        this.slides.push({ text: '', time: 0, image: false });
+      },
+      deleteSlide(slideIndex) {
+        this.slides.splice(slideIndex, 1);
+      },
+      moveSlide(currentIndex, newIndex) {
+        this.slides.splice(newIndex, 0, this.slides.splice(currentIndex, 1)[0]);
+      },
+      getImagePathParts: function (slide) {
+        return getImagePathParts(slide, this.file);
+      },
+      ensureSlideImages() {
+        let thisVue = this;
+        $('#editModal .slide-thumbnail .text').each((i, elem) => {
+          maximizeFontSize(elem);
+        });
+        thisVue.slides.forEach(slide => ensureSlideImage(slide, thisVue.file));
+      },
+      formatTime
+    }
+  });
+
   var settingsVue = new Vue({
     el: '#settingsModal',
     data: {
@@ -1067,6 +1014,43 @@ function onReady() {
     });
 
   $('#txtSearch').on('keyup keypress', JS.debounce(filterVideos, 200));
+
+  $(window).on('beforeunload', () => {
+    let jwpSlideDirs = {};
+    videoFiles.forEach(videoFile => {
+      let jwpPath = path.dirname(path.join(path.dirname(videoFile.path), '.jw-presenter', 'd'));
+      
+      // if the .jw-presenter directory hasn't been read yet...
+      if (!JS.has(jwpSlideDirs, jwpPath)) {
+        let slidePaths = jwpSlideDirs[jwpPath] = {};
+        fs.readdirSync(jwpPath).forEach(name => {
+          let filePath = path.join(jwpPath, name);
+          let isFile = fs.statSync(filePath).isFile();
+          if (/-\d+$/.test(filePath)) {
+            slidePaths[filePath] = false;
+          }
+        });
+      }
+
+      videoFile.vid.slides.forEach(slide => {
+        let slideImagePath = path.join(
+          jwpPath,
+          path.basename(videoFile.path) + '-' + JS.round(slide.time, 2)
+        );
+        if (JS.has(jwpSlideDirs[jwpPath], slideImagePath)) {
+          jwpSlideDirs[jwpPath][slideImagePath] = true;
+        }
+      });
+    });
+
+    JS.walk(jwpSlideDirs, (slidePaths, jwpPath) => {
+      JS.walk(slidePaths, (keepIt, slideImagePath) => {
+        if (!keepIt) {
+          fs.unlinkSync(slideImagePath);
+        }
+      });
+    });
+  });
 
   var jSlideWrap = $('#slideWrap');
 

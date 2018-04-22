@@ -1,7 +1,7 @@
 {
   "name": "jw-presenter",
   "productName": "JW Presenter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Seamlessly present media designed for Jehovah's Witnesses.",
   "main": "app.js",
   "scripts": {

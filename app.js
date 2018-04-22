@@ -34,7 +34,7 @@ app.on('ready', function() {
   function setMenu() {
     Menu.setApplicationMenu(Menu.buildFromTemplate([
       {
-        label: 'Big It!',
+        label: 'JW Presenter',
         submenu: [
           { label: 'Close', accelerator: 'CmdOrCtrl+W', click: () => BrowserWindow.getFocusedWindow().close() }
         ]

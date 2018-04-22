@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>Preaching</title>
+    <title>Predicación</title>
 
     <!-- Bootstrap -->
     <link href="../bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet">
@@ -33,44 +33,44 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand">Preaching</a>
+          <a class="navbar-brand">Predicación</a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
             <li>
               <a href="javascript:;" id="linkSetDir">
                 <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-                <span>&nbsp;Set Directory</span>
+                <span>&nbsp;Establecer carpeta</span>
               </a>
             </li>
             <li>
               <a href="javascript:;" id="linkPlayAll">
                 <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
-                <span>&nbsp;Play All</span>
+                <span>&nbsp;Todo</span>
               </a>
             </li>
             <li>
               <a href="javascript:;" id="linkRndVid">
                 <span class="glyphicon glyphicon-random" aria-hidden="true"></span>
-                <span>&nbsp;Random Video</span>
+                <span>&nbsp;Cualquier</span>
               </a>
             </li>
             <li>
               <a href="javascript:;" id="linkDetails">
                 <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
-                <span>&nbsp;Details</span>
+                <span>&nbsp;Detalles</span>
               </a>
             </li>
             <li>
               <a href="javascript:;" data-toggle="modal" data-target="#settingsModal">
                 <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
-                <span>&nbsp;Settings</span>
+                <span>&nbsp;Ajustes</span>
               </a>
             </li>
           </ul>
           <form id="formFilter" class="navbar-form navbar-right">
             <div class="input-group">
-              <input type="text" id="txtSearch" placeholder="filter..." class="form-control">
+              <input type="text" id="txtSearch" placeholder="filtrar..." class="form-control">
               <span class="input-group-btn">
                 <button class="btn btn-primary"><i class="glyphicon glyphicon-search"></i></button>
               </span>
@@ -89,13 +89,28 @@
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="detailsModalLabel">Details</h4>
+            <h4 class="modal-title" id="detailsModalLabel">Detalles</h4>
           </div>
           <div class="modal-body">
+            <div>Ha mostrado {{ ref('JS').sub('{0?{0}:un} video{0?s:}.', [history.length]) }}</div>
+            <table class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Cuando</th>
+                  <th>Archivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in history">
+                  <td>{{ ref('JS').formatDate(new Date(item.time), "DDD, MMM D, YYYY 'a' h:mm:ss A", 'Domingo,Lunes,Martes,Miércoles,Jueves,Viernes,Sábado'.split(','), 'Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre'.split(',')) }}</td>
+                  <td>{{ basename(item.path) }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-reset">Reset</button>
+            <button type="button" class="btn btn-danger"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Borrar</button>
           </div>
         </div>
       </div>
@@ -107,12 +122,12 @@
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="settingsModalLabel">Details</h4>
+            <h4 class="modal-title" id="settingsModalLabel">Detalles</h4>
           </div>
           <div class="modal-body">
             <div style="display: table; width: 100%;">
               <div style="display: table-cell; width: 1px;">
-                <label for="rangeLoudness">Loudness:</label>
+                <label for="rangeLoudness">Intensidad de volumen:</label>
               </div>
               <div style="display: table-cell; width: 1px; padding: 0 1em;">{{ loudness }}</div>
               <div style="display: table-cell; width: 99%;">
@@ -121,7 +136,7 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" data-dismiss="modal">Cerrar</button>
           </div>
         </div>
       </div>
@@ -132,13 +147,13 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title" id="editModalLabel">Edit Video</h4>
+            <h4 class="modal-title" id="editModalLabel">Editar Video</h4>
           </div>
           <div class="modal-body">
             <!-- Nav tabs -->
             <ul class="nav nav-tabs" role="tablist">
-              <li role="presentation" class="active"><a href="#tabMain" aria-controls="tabMain" role="tab" data-toggle="tab">Main</a></li>
-              <li role="presentation"><a href="#tabSlides" aria-controls="tabSlides" role="tab" data-toggle="tab">Slides</a></li>
+              <li role="presentation" class="active"><a href="#tabMain" aria-controls="tabMain" role="tab" data-toggle="tab">Detalles</a></li>
+              <li role="presentation"><a href="#tabSlides" aria-controls="tabSlides" role="tab" data-toggle="tab">Diapositivas</a></li>
               <!--li role="presentation"><a href="#tabPreview" aria-controls="tabPreview" role="tab" data-toggle="tab">Preview</a></li-->
             </ul>
 
@@ -146,15 +161,15 @@
             <div class="tab-content">
               <div role="tabpanel" class="tab-pane active" id="tabMain">
                 <div class="form-group">
-                  <label for="txtFileName">File Name</label>
+                  <label for="txtFileName">Nombre de archivo</label>
                   <input type="text" class="form-control" id="txtFileName" readonly />
                 </div>
                 <div class="form-group">
-                  <label for="txtVidTitle">Title</label>
-                  <input type="text" class="form-control" id="txtVidTitle" placeholder="eg. Caleb &amp; Sofia Go To Bethel" />
+                  <label for="txtVidTitle">Título</label>
+                  <input type="text" class="form-control" id="txtVidTitle" placeholder="eg. Caleb &amp; Sofia van a Betel" />
                 </div>
                 <div class="form-group keyword-form-group has-feedback">
-                  <label for="txtNewKeyword">Keywords</label>
+                  <label for="txtNewKeyword">Palabras claves</label>
                   <form class="form-new-keyword">
                     <div class="input-group">
                       <span class="input-group-btn"><button id="btnAddKeywords" class="btn btn-primary" type="button" tabindex="-1"><i class="glyphicon glyphicon-plus"></i></button></span>
@@ -166,8 +181,37 @@
                 </div>
               </div>
               <div role="tabpanel" class="tab-pane" id="tabSlides">
-                <ol id="olSlideList"></ol>
-                <div><button type="button" class="btn btn-default" id="btnAddSlide"><i class="glyphicon glyphicon-plus"></i> Add Slide</button></div>
+                <ol id="olSlideList">
+                  <li v-for="(slide, slideIndex) in slides" class="slide">
+                    <div>
+                      Diapositiva
+                      <select v-on:change="moveSlide(slideIndex, +$event.target.value)">
+                        <option v-for="(s, i) in slides" v-bind:value="i" :selected="i == slideIndex">{{ i + 1 }}</option>
+                      </select>
+                      de {{ slides.length }}
+                      <button type="button" class="btn btn-danger" v-on:click="deleteSlide(slideIndex)"><i class="glyphicon glyphicon-trash"></i></button>
+                    </div>
+                    <div class="slide-thumbnail" v-bind:style="'padding-bottom:' + (screenRatio * 100) + '%;' + (slide.image ? 'background-image: url(\'' + getImagePathParts(slide).slideImagePath.replace(/\\/g, '/').replace(/'/g, '\\\'') + '\')' : '')">
+                      <div class="text">{{ slide.text }}</div>
+                    </div>
+                    <div>
+                      <table class="table-time" border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td class="td-text">
+                            <input type="text" class="time" readonly size="5" v-bind:value="formatTime(slide.time)">
+                          </td>
+                          <td class="td-range">
+                            <input type="range" min="0" v-bind:max="Math.floor(file.vid.duration)" v-model="slide.time">
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                    <div>
+                      <input type="text" class="form-control text" v-model="slide.text" v-bind:placeholder="'Mensaje para diapositiva ' + (slideIndex + 1) + ' de ' + slides.length">
+                    </div>
+                  </li>
+                </ol>
+                <div><button type="button" class="btn btn-default" id="btnAddSlide" v-on:click="addSlide"><i class="glyphicon glyphicon-plus"></i> Agregar diapositiva</button></div>
               </div>
               <!--div role="tabpanel" class="tab-pane" id="tabPreview">
                 <div id="slidePreviewWrap"></div>
@@ -175,8 +219,8 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-default btn-show-in-folder">Show In Folder</button>
-            <button type="button" class="btn btn-success btn-save" data-dismiss="modal">Save &amp; Close</button>
+            <button type="button" class="btn btn-default btn-show-in-folder">Mostrar en carpeta</button>
+            <button type="button" class="btn btn-success btn-save" data-dismiss="modal">Guardar y cerrar</button>
           </div>
         </div>
       </div>
@@ -192,7 +236,7 @@
           </div>
           <div class="modal-body"></div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-primary btn-close" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary btn-close" data-dismiss="modal">Cerrar</button>
           </div>
         </div>
       </div>
@@ -200,9 +244,9 @@
 
     <div id="slideWrap">
       <div class="buttons">
-        <button type="button" class="btn btn-default previous"><i class="glyphicon glyphicon-arrow-left"></i> Previous</button>
-        <button type="button" class="btn btn-default next"><i class="glyphicon glyphicon-arrow-right"></i> Next</button>
-        <button type="button" class="btn btn-default end"><i class="glyphicon glyphicon-remove-circle"></i> End</button>
+        <button type="button" class="btn btn-default previous"><i class="glyphicon glyphicon-arrow-left"></i> Previo</button>
+        <button type="button" class="btn btn-default next"><i class="glyphicon glyphicon-arrow-right"></i> Próximo</button>
+        <button type="button" class="btn btn-default end"><i class="glyphicon glyphicon-remove-circle"></i> Salir</button>
       </div>
       <div class="text"></div>
     </div>
